@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Submit Interview Feedback</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Interview Details</h5>
+                        <p><strong>Applicant:</strong> {{ interview.application.applicant.get_full_name }}</p>
+                        <p><strong>Position:</strong> {{ interview.application.job.title }}</p>
+                        <p><strong>Date:</strong> {{ interview.scheduled_date|date:"F j, Y, g:i a" }}</p>
+                    </div>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Rating</label>
+                            <div class="rating">
+                                {% for i in "12345" %}
+                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
+                                <label for="star{{ i }}">☆</label>
+                                {% endfor %}
+                            </div>
+                            <div class="invalid-feedback">
+                                Please select a rating.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="feedback_text" class="form-label">Detailed Feedback</label>
+                            <textarea class="form-control" id="feedback_text" name="feedback_text" rows="5" required></textarea>
+                            <div class="form-text">Provide detailed feedback about the candidate's performance, skills, and overall impression.</div>
+                            <div class="invalid-feedback">
+                                Please provide feedback.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                            <a href="{% url 'view_application' interview.application.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+
+// Star rating styling
+document.querySelectorAll('.rating input').forEach(input => {
+    input.addEventListener('change', function() {
+        const rating = this.value;
+        document.querySelectorAll('.rating label').forEach(label => {
+            label.style.color = '#ddd';
+        });
+        for (let i = 1; i <= rating; i++) {
+            document.querySelector(`label[for="star${i}"]`).style.color = '#ffd700';
+        }
+    });
+});
+</script>
+
+<style>
+.rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating input {
+    display: none;
+}
+
+.rating label {
+    font-size: 30px;
+    color: #ddd;
+    padding: 5px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.rating label:hover,
+.rating label:hover ~ label,
+.rating input:checked ~ label {
+    color: #ffd700;
+}
+</style>
+{% endblock %}
+{% endblock %} 

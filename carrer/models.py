@@ -287,3 +287,42 @@ class Notification(models.Model):
             models.Index(fields=['is_read']),
             models.Index(fields=['created_at']),
         ]
+
+class Interview(models.Model):
+    STATUS_CHOICES = [
+        ('scheduled', 'Scheduled'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('rescheduled', 'Rescheduled'),
+    ]
+
+    application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='interviews')
+    scheduled_date = models.DateTimeField()
+    duration = models.IntegerField(help_text="Duration in minutes", default=60)
+    interview_type = models.CharField(max_length=50, choices=[
+        ('phone', 'Phone Interview'),
+        ('video', 'Video Call'),
+        ('in_person', 'In-Person'),
+    ])
+    location_or_link = models.CharField(max_length=255, help_text="Physical location or video call link")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    reminder_sent = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Interview for {self.application.job.title} - {self.application.applicant.get_full_name()}"
+
+    class Meta:
+        ordering = ['scheduled_date']
+
+class InterviewFeedback(models.Model):
+    interview = models.OneToOneField(Interview, on_delete=models.CASCADE, related_name='feedback')
+    interviewer = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    feedback_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Feedback for {self.interview}"

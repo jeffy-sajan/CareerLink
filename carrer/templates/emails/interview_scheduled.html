@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Interview Scheduled</h2>
+    </div>
+    
+    <div class="content">
+        <p>Dear {% if user == interview.application.applicant %}applicant{% else %}employer{% endif %},</p>
+        
+        <p>An interview has been scheduled for the position of <strong>{{ interview.application.job.title }}</strong>.</p>
+        
+        <h3>Interview Details:</h3>
+        <ul>
+            <li><strong>Date & Time:</strong> {{ interview.scheduled_date|date:"F j, Y, g:i a" }}</li>
+            <li><strong>Duration:</strong> {{ interview.duration }} minutes</li>
+            <li><strong>Type:</strong> {{ interview.get_interview_type_display }}</li>
+            <li><strong>Location/Link:</strong> {{ interview.location_or_link }}</li>
+        </ul>
+        
+        {% if interview.notes %}
+        <h3>Additional Notes:</h3>
+        <p>{{ interview.notes }}</p>
+        {% endif %}
+        
+        <p>Please make sure to:</p>
+        <ul>
+            <li>Add this interview to your calendar</li>
+            <li>Test your video/audio equipment if it's an online interview</li>
+            <li>Prepare any necessary documents or materials</li>
+        </ul>
+        
+        <p>You can view and manage this interview by clicking the button below:</p>
+        
+        <div style="text-align: center;">
+            <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'view_application' interview.application.id %}" class="button">
+                View Interview Details
+            </a>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+    </div>
+</body>
+</html> 

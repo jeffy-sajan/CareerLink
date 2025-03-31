@@ -73,6 +73,11 @@
                                                                 onclick="updateStatus({{ application.id }}, 'Rejected')">
                                                             Reject
                                                         </button>
+                                                    {% elif application.status == 'Accepted' %}
+                                                        <a href="{% url 'schedule_interview' application.id %}" 
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            Schedule Interview
+                                                        </a>
                                                     {% endif %}
                                                 </div>
                                             </td>

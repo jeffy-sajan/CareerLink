@@ -10,12 +10,14 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from .models import (
     JobSeekerProfile, EmployerProfile, Job, JobApplication,
-    Category, SavedJob, CompanyReview, Notification
+    Category, SavedJob, CompanyReview, Notification, Interview, InterviewFeedback
 )
 from .forms import JobSeekerProfileForm, JobApplicationForm, EmployerProfileForm, JobForm
 import os
 import json
 from django.views.decorators.http import require_http_methods
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 # Load Admin Credentials from Environment Variables (Security Fix)
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
@@ -658,3 +660,197 @@ def reject_job(request, job_id):
         messages.error(request, 'Job not found.')
     
     return redirect('admin_dashboard')
+
+# Interview Management
+@login_required
+def schedule_interview(request, application_id):
+    application = get_object_or_404(JobApplication, id=application_id)
+    
+    # Check if user is the employer
+    if application.job.company.user != request.user:
+        messages.error(request, 'You do not have permission to schedule interviews.')
+        return redirect('employer_applications')
+    
+    if request.method == 'POST':
+        try:
+            scheduled_date = timezone.datetime.strptime(request.POST.get('scheduled_date'), '%Y-%m-%dT%H:%M')
+            scheduled_date = timezone.make_aware(scheduled_date)  # Make timezone-aware
+            duration = int(request.POST.get('duration', 60))
+            interview_type = request.POST.get('interview_type')
+            location_or_link = request.POST.get('location_or_link')
+            notes = request.POST.get('notes')
+            
+            interview = Interview.objects.create(
+                application=application,
+                scheduled_date=scheduled_date,
+                duration=duration,
+                interview_type=interview_type,
+                location_or_link=location_or_link,
+                notes=notes
+            )
+            
+            # Create notification for the applicant
+            Notification.objects.create(
+                user=application.applicant,
+                notification_type='interview',
+                title='Interview Scheduled',
+                message=f'An interview has been scheduled for {application.job.title} on {scheduled_date.strftime("%B %d, %Y at %I:%M %p")}.'
+            )
+            
+            # Try to send email notifications, but don't fail if it doesn't work
+            try:
+                send_interview_notifications(interview)
+            except Exception as e:
+                # Log the error but don't show it to the user
+                print(f"Failed to send interview notification email: {str(e)}")
+                messages.warning(request, 'Interview scheduled successfully, but there was an issue sending email notifications.')
+            
+            messages.success(request, 'Interview scheduled successfully!')
+            return redirect('view_application', application_id=application.id)
+        except (ValueError, TypeError) as e:
+            messages.error(request, 'Invalid date format or duration. Please try again.')
+            return render(request, 'career/schedule_interview.html', {
+                'application': application
+            })
+    
+    return render(request, 'career/schedule_interview.html', {
+        'application': application
+    })
+
+@login_required
+def manage_interview(request, interview_id):
+    interview = get_object_or_404(Interview, id=interview_id)
+    
+    # Check if user is either the employer or the applicant
+    if interview.application.job.company.user != request.user and interview.application.applicant != request.user:
+        messages.error(request, 'You do not have permission to manage this interview.')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'reschedule':
+            interview.scheduled_date = request.POST.get('scheduled_date')
+            interview.status = 'rescheduled'
+            interview.save()
+            send_interview_reschedule_notification(interview)
+            messages.success(request, 'Interview rescheduled successfully!')
+        
+        elif action == 'cancel':
+            interview.status = 'cancelled'
+            interview.save()
+            send_interview_cancellation_notification(interview)
+            messages.success(request, 'Interview cancelled successfully!')
+        
+        elif action == 'complete':
+            interview.status = 'completed'
+            interview.save()
+            messages.success(request, 'Interview marked as completed!')
+    
+    return redirect('view_application', application_id=interview.application.id)
+
+@login_required
+def submit_interview_feedback(request, interview_id):
+    interview = get_object_or_404(Interview, id=interview_id)
+    
+    # Check if user is the employer
+    if interview.application.job.company.user != request.user:
+        messages.error(request, 'You do not have permission to submit feedback.')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        rating = request.POST.get('rating')
+        feedback_text = request.POST.get('feedback_text')
+        
+        InterviewFeedback.objects.create(
+            interview=interview,
+            interviewer=request.user,
+            rating=rating,
+            feedback_text=feedback_text
+        )
+        
+        messages.success(request, 'Feedback submitted successfully!')
+        return redirect('view_application', application_id=interview.application.id)
+    
+    return render(request, 'career/submit_feedback.html', {
+        'interview': interview
+    })
+
+def send_interview_notifications(interview):
+    # Send to applicant
+    send_email(
+        subject='Interview Scheduled',
+        template='emails/interview_scheduled.html',
+        context={'interview': interview},
+        recipient_list=[interview.application.applicant.email]
+    )
+    
+    # Send to employer
+    send_email(
+        subject='Interview Scheduled',
+        template='emails/interview_scheduled.html',
+        context={'interview': interview},
+        recipient_list=[interview.application.job.company.user.email]
+    )
+
+def send_interview_reschedule_notification(interview):
+    # Send to applicant
+    send_email(
+        subject='Interview Rescheduled',
+        template='emails/interview_rescheduled.html',
+        context={'interview': interview},
+        recipient_list=[interview.application.applicant.email]
+    )
+    
+    # Send to employer
+    send_email(
+        subject='Interview Rescheduled',
+        template='emails/interview_rescheduled.html',
+        context={'interview': interview},
+        recipient_list=[interview.application.job.company.user.email]
+    )
+
+def send_interview_cancellation_notification(interview):
+    # Send to applicant
+    send_email(
+        subject='Interview Cancelled',
+        template='emails/interview_cancelled.html',
+        context={'interview': interview},
+        recipient_list=[interview.application.applicant.email]
+    )
+    
+    # Send to employer
+    send_email(
+        subject='Interview Cancelled',
+        template='emails/interview_cancelled.html',
+        context={'interview': interview},
+        recipient_list=[interview.application.job.company.user.email]
+    )
+
+def send_email(subject, template, context, recipient_list):
+    try:
+        html_message = render_to_string(template, context)
+        send_mail(
+            subject=subject,
+            message='',
+            from_email=None,  # Use default from email
+            recipient_list=recipient_list,
+            html_message=html_message,
+            fail_silently=True  # Don't raise an exception if email fails
+        )
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
+        # Don't raise the exception, just log it
+
+@login_required
+def get_notifications(request):
+    notifications = Notification.objects.filter(
+        user=request.user
+    ).order_by('-created_at')
+    
+    # Mark notifications as read when viewed
+    notifications.filter(is_read=False).update(is_read=True)
+    
+    return render(request, 'career/notifications.html', {
+        'notifications': notifications
+    })

@@ -25,7 +25,11 @@ from .views import (
     # Admin Views
     delete_user, approve_job, reject_job,
     # New URL pattern
-    view_my_application
+    view_my_application,
+    # Interview Management
+    schedule_interview, manage_interview, submit_interview_feedback,
+    # Notifications
+    get_notifications
 )
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -131,4 +135,12 @@ urlpatterns = [
 
     # Search URLs
     path('search/', job_search, name='job_search'),
+
+    # Interview Management URLs
+    path('employer/application/<int:application_id>/schedule-interview/', schedule_interview, name='schedule_interview'),
+    path('interview/<int:interview_id>/manage/', manage_interview, name='manage_interview'),
+    path('interview/<int:interview_id>/feedback/', submit_interview_feedback, name='submit_interview_feedback'),
+
+    # Notifications
+    path('notifications/', get_notifications, name='notifications'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

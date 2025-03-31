@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Schedule Interview</h4>
+                        <a href="{% url 'employer_applications' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Applications
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Applicant Details</h5>
+                        <p><strong>Name:</strong> {{ application.applicant.get_full_name }}</p>
+                        <p><strong>Position:</strong> {{ application.job.title }}</p>
+                        <p><strong>Email:</strong> {{ application.applicant.email }}</p>
+                        {% if application.applicant.jobseekerprofile.timezone %}
+                            <p><strong>Timezone:</strong> {{ application.applicant.jobseekerprofile.timezone }}</p>
+                        {% endif %}
+                    </div>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="scheduled_date" class="form-label">Interview Date & Time</label>
+                            <input type="datetime-local" class="form-control" id="scheduled_date" name="scheduled_date" required>
+                            <div class="form-text">Please select a date and time that works for both parties.</div>
+                            <div class="invalid-feedback">
+                                Please select a date and time for the interview.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="duration" class="form-label">Duration (minutes)</label>
+                            <select class="form-select" id="duration" name="duration" required>
+                                <option value="30">30 minutes</option>
+                                <option value="60" selected>1 hour</option>
+                                <option value="90">1.5 hours</option>
+                                <option value="120">2 hours</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="interview_type" class="form-label">Interview Type</label>
+                            <select class="form-select" id="interview_type" name="interview_type" required>
+                                <option value="online">Online (Video Call)</option>
+                                <option value="in_person">In Person</option>
+                                <option value="phone">Phone Call</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location_or_link" class="form-label">Location or Meeting Link</label>
+                            <input type="text" class="form-control" id="location_or_link" name="location_or_link" required>
+                            <div class="form-text">Enter physical address for in-person interviews or meeting link for online interviews.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                            <div class="form-text">Add any specific instructions or topics to be covered during the interview.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="recurring" name="recurring">
+                                <label class="form-check-label" for="recurring">
+                                    Schedule as recurring interview
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="recurring-options" class="mb-3" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="recurrence_frequency" class="form-label">Frequency</label>
+                                    <select class="form-select" id="recurrence_frequency" name="recurrence_frequency">
+                                        <option value="weekly">Weekly</option>
+                                        <option value="biweekly">Bi-weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="recurrence_count" class="form-label">Number of Sessions</label>
+                                    <input type="number" class="form-control" id="recurrence_count" name="recurrence_count" min="2" max="10">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Schedule Interview</button>
+                            <a href="{% url 'employer_applications' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+
+// Set minimum date to today
+document.getElementById('scheduled_date').min = new Date().toISOString().slice(0, 16)
+
+// Handle recurring interview options
+document.getElementById('recurring').addEventListener('change', function() {
+    const recurringOptions = document.getElementById('recurring-options');
+    recurringOptions.style.display = this.checked ? 'block' : 'none';
+});
+
+// Validate recurring interview options
+document.getElementById('recurrence_count').addEventListener('input', function() {
+    if (this.value < 2) this.value = 2;
+    if (this.value > 10) this.value = 10;
+});
+</script>
+{% endblock %}
+{% endblock %} 
