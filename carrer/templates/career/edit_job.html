@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Job - {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Edit Job</h4>
+                    <a href="{% url 'employer_dashboard' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Job Title -->
+                        <div class="form-group mb-3">
+                            {{ form.title.label_tag }}
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.title.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Category -->
+                        <div class="form-group mb-3">
+                            {{ form.category.label_tag }}
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.category.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-group mb-3">
+                            {{ form.description.label_tag }}
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Location -->
+                        <div class="form-group mb-3">
+                            {{ form.location.label_tag }}
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.location.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Salary Range -->
+                        <div class="form-group mb-3">
+                            {{ form.salary_range.label_tag }}
+                            {{ form.salary_range }}
+                            {% if form.salary_range.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.salary_range.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Job Type -->
+                        <div class="form-group mb-3">
+                            {{ form.job_type.label_tag }}
+                            {{ form.job_type }}
+                            {% if form.job_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.job_type.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Required Skills -->
+                        <div class="form-group mb-3">
+                            {{ form.required_skills.label_tag }}
+                            {{ form.required_skills }}
+                            {% if form.required_skills.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.required_skills.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Experience Level -->
+                        <div class="form-group mb-3">
+                            {{ form.experience_level.label_tag }}
+                            {{ form.experience_level }}
+                            {% if form.experience_level.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.experience_level.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Deadline -->
+                        <div class="form-group mb-3">
+                            {{ form.deadline.label_tag }}
+                            {{ form.deadline }}
+                            {% if form.deadline.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.deadline.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Approval Status -->
+                        <div class="alert alert-info">
+                            <strong>Current Status:</strong> 
+                            <span class="badge {% if job.approval_status == 'approved' %}bg-success{% elif job.approval_status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ job.approval_status|title }}
+                            </span>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                            <a href="{% url 'employer_dashboard' %}" class="btn btn-secondary px-4 ms-2">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add client-side validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const title = document.getElementById('id_title').value;
+        const description = document.getElementById('id_description').value;
+        const location = document.getElementById('id_location').value;
+        const deadline = document.getElementById('id_deadline').value;
+        
+        if (!title.trim()) {
+            e.preventDefault();
+            alert('Please enter a job title');
+            return;
+        }
+        
+        if (!description.trim()) {
+            e.preventDefault();
+            alert('Please enter a job description');
+            return;
+        }
+        
+        if (!location.trim()) {
+            e.preventDefault();
+            alert('Please enter a job location');
+            return;
+        }
+        
+        if (!deadline) {
+            e.preventDefault();
+            alert('Please select an application deadline');
+            return;
+        }
+        
+        const deadlineDate = new Date(deadline);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (deadlineDate < today) {
+            e.preventDefault();
+            alert('Deadline cannot be in the past');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %} 

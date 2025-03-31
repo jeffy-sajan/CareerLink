@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}My Applications{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">My Job Applications</h4>
+                    <a href="{% url 'job_search' %}" class="btn btn-light btn-sm">Search More Jobs</a>
+                </div>
+                <div class="card-body">
+                    {% if applications %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Job Title</th>
+                                    <th>Company</th>
+                                    <th>Applied Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for application in applications %}
+                                <tr>
+                                    <td>{{ application.job.title }}</td>
+                                    <td>
+                                        <a href="{% url 'company_profile' application.job.company.id %}" class="text-decoration-none">
+                                            {{ application.job.company.company_name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ application.applied_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <span class="badge {% if application.status == 'Accepted' %}bg-success
+                                                         {% elif application.status == 'Rejected' %}bg-danger
+                                                         {% elif application.status == 'Reviewed' %}bg-info
+                                                         {% else %}bg-warning{% endif %}">
+                                            {{ application.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'job_detail' application.job.id %}" class="btn btn-sm btn-info">
+                                            View Job
+                                        </a>
+                                        <a href="{% url 'view_my_application' application.id %}" class="btn btn-sm btn-primary">
+                                            View Application
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5>No Applications Yet</h5>
+                        <p class="text-muted">Start applying for jobs to see your applications here.</p>
+                        <a href="{% url 'job_search' %}" class="btn btn-primary">Search Jobs</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    background-color: #f8f9fa;
+}
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5em 0.75em;
+}
+</style>
+{% endblock %}

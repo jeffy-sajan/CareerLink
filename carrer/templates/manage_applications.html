@@ -1,0 +1,32 @@
+{% block content %}
+<h2>Manage Job Applications</h2>
+
+<table border="1">
+    <tr>
+        <th>Job Title</th>
+        <th>Applicant</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+    {% for application in applications %}
+    <tr>
+        <td>{{ application.job.title }}</td>
+        <td>{{ application.applicant.username }}</td>
+        <td>{{ application.status }}</td>
+        <td>
+            <form method="post" action="{% url 'update_application_status_admin' application.id %}">
+                {% csrf_token %}
+                <select name="status">
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accept</option>
+                    <option value="rejected">Reject</option>
+                </select>
+                <button type="submit">Update</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<a href="{% url 'admin_dashboard' %}">Back to Dashboard</a>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">My Profile</h4>
+                    {% if not edit_mode %}
+                        <a href="?edit=true" class="btn btn-light btn-sm">
+                            <i class="fas fa-edit me-1"></i>Edit Profile
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if edit_mode %}
+                        <!-- Edit Profile Form -->
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- Profile Picture -->
+                            <div class="mb-4 text-center">
+                                <!-- Debug information -->
+                                <div class="small text-muted mb-2">
+                                    Debug Info:
+                                    <br>Has profile picture: {{ profile.profile_picture|yesno:"Yes,No" }}
+                                    {% if profile.profile_picture %}
+                                    <br>Picture URL: {{ profile.profile_picture.url }}
+                                    <br>Picture path: {{ profile.profile_picture.path }}
+                                    {% endif %}
+                                </div>
+                                
+                                {% if profile.profile_picture %}
+                                    <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 150px; height: 150px; font-size: 48px;">
+                                        {{ request.user.get_full_name|first|upper }}
+                                    </div>
+                                {% endif %}
+                                <div class="form-group">
+                                    {{ form.profile_picture.label_tag }}
+                                    {{ form.profile_picture }}
+                                    {% if form.profile_picture.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.profile_picture.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Contact Information -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        {{ form.phone.label_tag }}
+                                        {{ form.phone }}
+                                        {% if form.phone.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.phone.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        {{ form.location.label_tag }}
+                                        {{ form.location }}
+                                        {% if form.location.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.location.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Professional Information -->
+                            <div class="form-group mb-3">
+                                {{ form.skills.label_tag }}
+                                {{ form.skills }}
+                                {% if form.skills.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.skills.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group mb-3">
+                                {{ form.experience.label_tag }}
+                                {{ form.experience }}
+                                {% if form.experience.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.experience.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group mb-3">
+                                {{ form.education.label_tag }}
+                                {{ form.education }}
+                                {% if form.education.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.education.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Job Preferences -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        {{ form.expected_salary.label_tag }}
+                                        {{ form.expected_salary }}
+                                        {% if form.expected_salary.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.expected_salary.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        {{ form.preferred_job_type.label_tag }}
+                                        {{ form.preferred_job_type }}
+                                        {% if form.preferred_job_type.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.preferred_job_type.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                {{ form.preferred_location.label_tag }}
+                                {{ form.preferred_location }}
+                                {% if form.preferred_location.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.preferred_location.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Resume -->
+                            <div class="form-group mb-3">
+                                {{ form.resume.label_tag }}
+                                {{ form.resume }}
+                                {% if form.resume.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.resume.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if profile.resume %}
+                                    <small class="text-muted">Current resume: <a href="{{ profile.resume.url }}" target="_blank">View</a></small>
+                                {% endif %}
+                            </div>
+
+                            <!-- LinkedIn Profile -->
+                            <div class="form-group mb-3">
+                                {{ form.linkedin.label_tag }}
+                                {{ form.linkedin }}
+                                {% if form.linkedin.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.linkedin.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                                <a href="{% url 'job_seeker_profile' %}" class="btn btn-secondary px-4 ms-2">Cancel</a>
+                            </div>
+                        </form>
+                    {% else %}
+                        <!-- View Profile Information -->
+                        <div class="text-center mb-4">
+                            {% if profile.profile_picture %}
+                                <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 150px; height: 150px; font-size: 48px;">
+                                    {{ request.user.get_full_name|first|upper }}
+                                </div>
+                            {% endif %}
+                            <h4>{{ request.user.get_full_name }}</h4>
+                            <p class="text-muted">{{ request.user.email }}</p>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5 class="mb-3">Contact Information</h5>
+                                <p><strong>Phone:</strong> {{ profile.phone|default:"Not provided" }}</p>
+                                <p><strong>Location:</strong> {{ profile.location|default:"Not provided" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="mb-3">Professional Links</h5>
+                                {% if profile.linkedin %}
+                                    <a href="{{ profile.linkedin }}" target="_blank" class="btn btn-outline-primary btn-sm mb-2">
+                                        <i class="fab fa-linkedin me-1"></i>LinkedIn Profile
+                                    </a>
+                                {% endif %}
+                                {% if profile.resume %}
+                                    <a href="{{ profile.resume.url }}" target="_blank" class="btn btn-outline-primary btn-sm d-block">
+                                        <i class="fas fa-file-pdf me-1"></i>View Resume
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="mb-3">Professional Information</h5>
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6>Skills</h6>
+                                        <p class="mb-3">{{ profile.skills|default:"No skills listed" }}</p>
+                                        
+                                        <h6>Experience</h6>
+                                        <p class="mb-3">{{ profile.experience|default:"No experience listed" }}</p>
+                                        
+                                        <h6>Education</h6>
+                                        <p>{{ profile.education|default:"No education listed" }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="mb-3">Job Preferences</h5>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>Expected Salary:</strong> ${{ profile.expected_salary|default:"Not specified" }}</p>
+                                                <p><strong>Preferred Job Type:</strong> {{ profile.preferred_job_type|default:"Not specified" }}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>Preferred Location:</strong> {{ profile.preferred_location|default:"Not specified" }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

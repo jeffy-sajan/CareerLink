@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ job.title }} at {{ job.company.company_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Job Details -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <h1 class="h3 mb-2">{{ job.title }}</h1>
+                            <h2 class="h5 text-muted mb-3">{{ job.company.company_name }}</h2>
+                            <div class="d-flex gap-3 text-muted">
+                                <span><i class="fas fa-map-marker-alt"></i> {{ job.location }}</span>
+                                <span><i class="fas fa-briefcase"></i> {{ job.job_type }}</span>
+                                <span><i class="fas fa-clock"></i> Posted {{ job.created_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                        {% if user.is_authenticated and is_job_seeker %}
+                            <div class="text-end">
+                                {% if is_saved %}
+                                    <button class="btn btn-outline-danger mb-2 w-100" onclick="unsaveJob({{ job.id }})">
+                                        <i class="fas fa-heart"></i> Unsave Job
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-outline-primary mb-2 w-100" onclick="saveJob({{ job.id }})">
+                                        <i class="far fa-heart"></i> Save Job
+                                    </button>
+                                {% endif %}
+                                {% if has_applied %}
+                                    <button class="btn btn-success w-100" disabled>
+                                        <i class="fas fa-check"></i> Already Applied
+                                    </button>
+                                {% else %}
+                                    <a href="{% url 'apply_for_job' job.id %}" class="btn btn-primary w-100">
+                                        Apply Now
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Job Details</h5>
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="fas fa-money-bill-wave text-primary"></i> Salary: {{ job.salary_range }}</li>
+                                <li class="mb-2"><i class="fas fa-graduation-cap text-primary"></i> Experience: {{ job.experience_level }}</li>
+                                <li class="mb-2"><i class="fas fa-tag text-primary"></i> Category: {{ job.category.name }}</li>
+                                <li class="mb-2"><i class="fas fa-calendar text-primary"></i> Posted: {{ job.created_at|date:"F d, Y" }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Required Skills</h5>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for skill in job.required_skills.split %}
+                                    <span class="badge bg-primary">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="mb-3">Job Description</h5>
+                        <div class="job-description">
+                            {{ job.description|linebreaks }}
+                        </div>
+                    </div>
+
+                    {% if job.requirements %}
+                    <div class="mb-4">
+                        <h5 class="mb-3">Requirements</h5>
+                        <div class="requirements">
+                            {{ job.requirements|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if job.benefits %}
+                    <div class="mb-4">
+                        <h5 class="mb-3">Benefits</h5>
+                        <div class="benefits">
+                            {{ job.benefits|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Company Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">About {{ job.company.company_name }}</h5>
+                    <div class="row">
+                        <div class="col-md-12">
+                            {% if job.company.company_description %}
+                                <p class="card-text">{{ job.company.company_description|linebreaks }}</p>
+                            {% endif %}
+                            <a href="{% url 'company_profile' job.company.id %}" class="btn btn-outline-primary">
+                                View Company Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Similar Jobs -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Similar Jobs</h5>
+                    {% for similar_job in similar_jobs %}
+                    <div class="mb-3">
+                        <h6 class="mb-1">{{ similar_job.title }}</h6>
+                        <p class="small text-muted mb-1">{{ similar_job.company.company_name }}</p>
+                        <p class="small text-muted mb-0">{{ similar_job.location }}</p>
+                        <a href="{% url 'job_detail' similar_job.id %}" class="stretched-link"></a>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small">No similar jobs found.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Job Application Stats -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Application Statistics</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-users text-primary"></i>
+                            {{ job.applications.count }} applications
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-eye text-primary"></i>
+                            {{ job.views }} views
+                        </li>
+                        <li>
+                            <i class="fas fa-share text-primary"></i>
+                            {{ job.shares }} shares
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.is_authenticated and is_job_seeker %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function saveJob(jobId) {
+    fetch(`/jobs/${jobId}/save/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            throw new Error('Failed to save job');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to save job. Please try again.');
+    });
+}
+
+function unsaveJob(jobId) {
+    fetch(`/jobs/${jobId}/unsave/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            throw new Error('Failed to unsave job');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to unsave job. Please try again.');
+    });
+}
+</script>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Employer Profile Section -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    {% if employer_profile.company_logo %}
+                        <img src="{{ employer_profile.company_logo.url }}" alt="Company Logo" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
+                            <h3>{{ employer_profile.company_name|first|upper }}</h3>
+                        </div>
+                    {% endif %}
+                    <h4>{{ employer_profile.company_name }}</h4>
+                    <p class="text-muted">{{ employer_profile.industry }}</p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'edit_company_profile' employer_profile.id %}" class="btn btn-outline-primary">Edit Profile</a>
+                        <a href="{% url 'post_job' %}" class="btn btn-primary">Post New Job</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Section -->
+        <div class="col-md-8">
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Jobs</h5>
+                            <h2 class="card-text">{{ jobs.count }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Applications</h5>
+                            <h2 class="card-text">{{ total_applications }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Reviews</h5>
+                            <h2 class="card-text">{{ pending_applications }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Hired Candidates</h5>
+                            <h2 class="card-text">{{ accepted_applications }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Jobs Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Active Jobs</h5>
+                </div>
+                <div class="card-body">
+                    {% if jobs %}
+                        <div class="list-group">
+                            {% for job in jobs %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ job.title }}</h6>
+                                            <small class="text-muted">{{ job.location }} • {{ job.job_type }}</small>
+                                            <br>
+                                            <span class="badge {% if job.approval_status == 'approved' %}bg-success{% elif job.approval_status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                {{ job.approval_status|title }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <a href="{% url 'edit_job' job.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                            <a href="{% url 'employer_applications' %}?job={{ job.id }}" class="btn btn-sm btn-outline-success">View Applications</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No active jobs posted yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Applications Section -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Applications</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_applications %}
+                        <div class="list-group">
+                            {% for application in recent_applications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ application.job.title }}</h6>
+                                            <small class="text-muted">Applied by: {{ application.applicant.get_full_name }}</small>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-{{ application.status|lower }}">{{ application.status }}</span>
+                                            <a href="{% url 'view_application' application.id %}" class="btn btn-sm btn-outline-primary ms-2">View</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recent applications.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

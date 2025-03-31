@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Applicant Information -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Applicant Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if application.applicant.jobseekerprofile.profile_picture %}
+                            <img src="{{ application.applicant.jobseekerprofile.profile_picture.url }}" 
+                                 alt="Profile Picture" 
+                                 class="rounded-circle mb-3"
+                                 style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3"
+                                 style="width: 120px; height: 120px; font-size: 48px;">
+                                {{ application.applicant.get_full_name|first|upper }}
+                            </div>
+                        {% endif %}
+                        <h5>{{ application.applicant.get_full_name }}</h5>
+                        <p class="text-muted">{{ application.applicant.email }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Contact Information</h6>
+                        <p class="mb-2">
+                            <i class="fas fa-phone-alt me-2"></i>
+                            {{ application.applicant.jobseekerprofile.phone|default:"Not provided" }}
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            {{ application.applicant.jobseekerprofile.location|default:"Not provided" }}
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Professional Links</h6>
+                        {% if application.applicant.jobseekerprofile.linkedin %}
+                            <a href="{{ application.applicant.jobseekerprofile.linkedin }}" 
+                               target="_blank" 
+                               class="btn btn-outline-primary btn-sm mb-2 w-100">
+                                <i class="fab fa-linkedin me-2"></i>LinkedIn Profile
+                            </a>
+                        {% endif %}
+                        {% if application.applicant.jobseekerprofile.portfolio_website %}
+                            <a href="{{ application.applicant.jobseekerprofile.portfolio_website }}" 
+                               target="_blank" 
+                               class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-globe me-2"></i>Portfolio Website
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Details -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Application Details</h5>
+                        <a href="{% url 'employer_applications' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Applications
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Job Position</h6>
+                        <p class="mb-1"><strong>{{ application.job.title }}</strong></p>
+                        <p class="text-muted mb-0">Applied on {{ application.applied_at|date:"F d, Y" }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Application Status</h6>
+                        <span class="badge bg-{{ application.status|lower }} mb-3">{{ application.status }}</span>
+                        {% if application.status == 'Pending' %}
+                            <div class="btn-group d-block">
+                                <button type="button" 
+                                        class="btn btn-info me-2"
+                                        onclick="updateStatus({{ application.id }}, 'Accepted')">
+                                    <i class="fas fa-check me-1"></i>Accept Application
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-danger"
+                                        onclick="updateStatus({{ application.id }}, 'Rejected')">
+                                    <i class="fas fa-times me-1"></i>Reject Application
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Cover Letter</h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                {{ application.cover_letter|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Resume</h6>
+                        {% if application.resume %}
+                            <a href="{{ application.resume.url }}" 
+                               target="_blank" 
+                               class="btn btn-primary">
+                                <i class="fas fa-download me-1"></i>Download Resume
+                            </a>
+                        {% else %}
+                            <p class="text-muted">No resume attached</p>
+                        {% endif %}
+                    </div>
+
+                    {% if application.additional_documents %}
+                        <div class="mb-4">
+                            <h6>Additional Documents</h6>
+                            <a href="{{ application.additional_documents.url }}" 
+                               target="_blank" 
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-file-alt me-1"></i>View Additional Documents
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateStatus(applicationId, status) {
+    if (confirm('Are you sure you want to ' + status.toLowerCase() + ' this application?')) {
+        fetch(`/employer/applications/${applicationId}/update-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Failed to update application status. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the status.');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %} 

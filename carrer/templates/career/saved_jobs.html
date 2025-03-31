@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Saved Jobs{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Saved Jobs</h4>
+                </div>
+                <div class="card-body">
+                    {% if saved_jobs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Job Title</th>
+                                        <th>Company</th>
+                                        <th>Location</th>
+                                        <th>Job Type</th>
+                                        <th>Salary Range</th>
+                                        <th>Posted Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for saved_job in saved_jobs %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'job_detail' saved_job.job.id %}" class="text-decoration-none">
+                                                {{ saved_job.job.title }}
+                                            </a>
+                                        </td>
+                                        <td>{{ saved_job.job.company.company_name }}</td>
+                                        <td>{{ saved_job.job.location }}</td>
+                                        <td>{{ saved_job.job.job_type }}</td>
+                                        <td>{{ saved_job.job.salary_range }}</td>
+                                        <td>{{ saved_job.job.posted_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm unsave-job" data-job-id="{{ saved_job.job.id }}">
+                                                <i class="fas fa-heart-broken me-1"></i>Unsave
+                                            </button>
+                                            <a href="{% url 'job_detail' saved_job.job.id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-bookmark fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No saved jobs yet</h5>
+                            <p class="text-muted">Browse jobs and save the ones you're interested in!</p>
+                            <a href="{% url 'job_list' %}" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Browse Jobs
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for handling save/unsave functionality -->
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const csrftoken = getCookie('csrftoken');
+    
+    document.querySelectorAll('.unsave-job').forEach(button => {
+        button.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            const row = this.closest('tr');
+            
+            fetch(`/jobs/${jobId}/unsave/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Remove the row with animation
+                    row.style.transition = 'opacity 0.3s';
+                    row.style.opacity = '0';
+                    setTimeout(() => {
+                        row.remove();
+                        // Check if there are any jobs left
+                        if (document.querySelectorAll('tbody tr').length === 0) {
+                            location.reload(); // Reload to show empty state
+                        }
+                    }, 300);
+                } else {
+                    throw new Error('Failed to unsave job');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to unsave job. Please try again.');
+            });
+        });
+    });
+});
+</script>
+{% endblock %} 

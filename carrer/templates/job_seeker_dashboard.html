@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% block title %}Job Seeker Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    /* Job Seeker Dashboard Styling */
+    .job-seeker-dashboard {
+        font-family: 'Arial', sans-serif;
+        background-color: #f8f9fa;
+        color: #333;
+    }
+
+    .job-seeker-dashboard h1 {
+        font-size: 2.5rem;
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .job-seeker-dashboard p {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .job-seeker-dashboard .form-control, .job-seeker-dashboard .form-select {
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        padding: 10px;
+    }
+
+    .job-seeker-dashboard .btn-success {
+        background-color: #28a745;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+
+    .job-seeker-dashboard .btn-warning {
+        background-color: #ffc107;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+
+    .job-seeker-dashboard .header-section {
+        text-align: center;
+        padding: 50px 20px;
+        background-color: #fff;
+        margin-bottom: 20px;
+        margin-top: 80px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .job-seeker-dashboard .stats-section {
+        padding: 40px 20px;
+        background-color: #28a745;
+        color: #fff;
+        margin-bottom: 40px;
+    }
+
+    .job-seeker-dashboard .stats-section h2 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+
+    .job-seeker-dashboard .container {
+        padding: 20px;
+    }
+
+    .job-seeker-dashboard .card {
+        border: none;
+        border-radius: 10px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        min-height: 160px;
+    }
+
+    .job-seeker-dashboard .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .job-seeker-dashboard .card h5 {
+        font-size: 1.25rem;
+        color:rgb(102, 164, 215);
+    }
+
+    .job-seeker-dashboard .badge {
+        font-size: 0.9rem;
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+
+    .job-seeker-dashboard .category-section {
+        margin-bottom: 40px;
+    }
+
+    .job-seeker-dashboard .category-title {
+        color: #28a745;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #28a745;
+    }
+
+    .job-seeker-dashboard .view-all-link {
+        color: #28a745;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .job-seeker-dashboard .view-all-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Browse Categories Section Styling */
+    .browse-categories {
+        background-color: #fff;
+        padding: 40px 0;
+        margin-bottom: 40px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .browse-categories h3 {
+        color: #28a745;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .category-card {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        height: 100%;
+    }
+
+    .category-card:hover {
+        background-color: #28a745;
+        color: #fff;
+        transform: translateY(-5px);
+    }
+
+    .category-card:hover .category-icon {
+        color: #fff;
+    }
+
+    .category-icon {
+        font-size: 2.5rem;
+        color: #28a745;
+        margin-bottom: 15px;
+    }
+
+    .category-card h5 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .category-card p {
+        margin: 5px 0 0;
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    /* Call to Action Section */
+    .cta-section {
+        background-color: #28a745;
+        color: #fff;
+        padding: 40px 0;
+        text-align: center;
+        margin-top: 40px;
+    }
+
+    .cta-section h3 {
+        margin-bottom: 20px;
+    }
+
+    .cta-section p {
+        margin-bottom: 30px;
+    }
+</style>
+
+<div class="job-seeker-dashboard">
+    <!-- Header Section -->
+    <div class="header-section">
+        <h1>LAND YOUR DREAM JOB</h1>
+        <form class="row g-2 justify-content-center mt-4" method="GET" action="{% url 'job_search' %}">
+            <div class="col-md-3 col-12">
+                <input type="text" class="form-control" placeholder="Job title, Company..." name="q" value="{{ request.GET.q }}">
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Location" name="location" value="{{ request.GET.location }}">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="job_type">
+                    <option value="" disabled selected>Select Job Type</option>
+                    <option value="Full-time" {% if request.GET.job_type == 'Full-time' %}selected{% endif %}>Full Time</option>
+                    <option value="Part-time" {% if request.GET.job_type == 'Part-time' %}selected{% endif %}>Part Time</option>
+                    <option value="Contract" {% if request.GET.job_type == 'Contract' %}selected{% endif %}>Contract</option>
+                    <option value="Internship" {% if request.GET.job_type == 'Internship' %}selected{% endif %}>Internship</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">Search Job</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section text-center">
+        <h3>CareerLink Stats</h3>
+        <p>Explore job opportunities that fit your skills.</p>
+        <div class="row mt-3">
+            <div class="col-md-3"><h2>{{ candidates_count }}</h2><p>Candidates</p></div>
+            <div class="col-md-3"><h2>{{ jobs_count }}</h2><p>Jobs Posted</p></div>
+            <div class="col-md-3"><h2>{{ jobs_filled }}</h2><p>Jobs Filled</p></div>
+            <div class="col-md-3"><h2>{{ companies_count }}</h2><p>Companies</p></div>
+        </div>
+    </div>
+
+    <!-- Browse Categories Section -->
+    <div class="browse-categories">
+        <div class="container">
+            <h3>Browse by Categories</h3>
+            <div class="row g-4">
+                {% for category in categories %}
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'job_search' %}?category={{ category.id }}" class="text-decoration-none">
+                        <div class="category-card">
+                            <div class="category-icon">
+                                {% if category.name == 'Technology' %}
+                                    <i class="fas fa-laptop-code"></i>
+                                {% elif category.name == 'Healthcare' %}
+                                    <i class="fas fa-heartbeat"></i>
+                                {% elif category.name == 'Finance' %}
+                                    <i class="fas fa-chart-line"></i>
+                                {% elif category.name == 'Education' %}
+                                    <i class="fas fa-graduation-cap"></i>
+                                {% elif category.name == 'Marketing' %}
+                                    <i class="fas fa-bullhorn"></i>
+                                {% elif category.name == 'Sales' %}
+                                    <i class="fas fa-handshake"></i>
+                                {% elif category.name == 'Engineering' %}
+                                    <i class="fas fa-cogs"></i>
+                                {% else %}
+                                    <i class="fas fa-briefcase"></i>
+                                {% endif %}
+                            </div>
+                            <h5>{{ category.name }}</h5>
+                            <p>{{ category.job_set.count }} Jobs</p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- Call to Action Section (Only for unauthenticated users) -->
+    {% if not user.is_authenticated %}
+    <div class="cta-section">
+        <div class="container">
+            <h3>Ready to Start Your Career Journey?</h3>
+            <p>Create an account to apply for jobs, save your favorites, and track your applications.</p>
+            <a href="{% url 'job_seeker_register' %}" class="btn btn-warning">Sign Up Now</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Save Job functionality
+    document.querySelectorAll('.save-job').forEach(button => {
+        button.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            fetch(`/save-job/${jobId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.classList.remove('save-job', 'btn-outline-success');
+                    this.classList.add('unsave-job', 'btn-outline-danger');
+                    this.textContent = 'Unsave';
+                }
+            });
+        });
+    });
+
+    // Unsave Job functionality
+    document.querySelectorAll('.unsave-job').forEach(button => {
+        button.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            fetch(`/unsave-job/${jobId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.classList.remove('unsave-job', 'btn-outline-danger');
+                    this.classList.add('save-job', 'btn-outline-success');
+                    this.textContent = 'Save';
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}

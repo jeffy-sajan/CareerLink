@@ -1,0 +1,132 @@
+<!-- Multi-Step Job Posting Form -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Post a New Job{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Post a New Job</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger">
+                                Please correct the errors below.
+                            </div>
+                        {% endif %}
+
+                        {% for field in form %}
+                            <div class="form-group mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">
+                                    {{ field.label }}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ field.errors|join:", " }}
+                                    </div>
+                                {% endif %}
+                                {% if field.help_text %}
+                                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Post Job</button>
+                            <a href="{% url 'employer_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 10px;
+    }
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    .form-control {
+        border-radius: 5px;
+        border: 1px solid #ced4da;
+    }
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .btn {
+        padding: 10px 20px;
+        border-radius: 5px;
+    }
+    .alert {
+        border-radius: 5px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add client-side validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const title = document.getElementById('id_title').value;
+        const description = document.getElementById('id_description').value;
+        const location = document.getElementById('id_location').value;
+        const deadline = document.getElementById('id_deadline').value;
+        
+        if (!title.trim()) {
+            e.preventDefault();
+            alert('Please enter a job title');
+            return;
+        }
+        
+        if (!description.trim()) {
+            e.preventDefault();
+            alert('Please enter a job description');
+            return;
+        }
+        
+        if (!location.trim()) {
+            e.preventDefault();
+            alert('Please enter a job location');
+            return;
+        }
+        
+        if (!deadline) {
+            e.preventDefault();
+            alert('Please select an application deadline');
+            return;
+        }
+        
+        const deadlineDate = new Date(deadline);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (deadlineDate < today) {
+            e.preventDefault();
+            alert('Deadline cannot be in the past');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

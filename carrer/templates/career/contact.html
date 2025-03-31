@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Contact Us - CareerLink{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="text-center mb-4">Contact Us</h1>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h2 class="h4 mb-4">Get in Touch</h2>
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Your Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="subject" class="form-label">Subject</label>
+                                    <input type="text" class="form-control" id="subject" name="subject" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">Message</label>
+                                    <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Send Message</button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h2 class="h4 mb-4">Contact Information</h2>
+                            <div class="mb-4">
+                                <h3 class="h5">Office Location</h3>
+                                <p class="mb-0">
+                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                    123 Business Street<br>
+                                    City, State 12345<br>
+                                    Country
+                                </p>
+                            </div>
+                            <div class="mb-4">
+                                <h3 class="h5">Contact Details</h3>
+                                <p class="mb-2">
+                                    <i class="fas fa-phone text-primary me-2"></i>
+                                    +1 (123) 456-7890
+                                </p>
+                                <p class="mb-2">
+                                    <i class="fas fa-envelope text-primary me-2"></i>
+                                    support@careerlink.com
+                                </p>
+                            </div>
+                            <div class="mb-4">
+                                <h3 class="h5">Business Hours</h3>
+                                <p class="mb-1">Monday - Friday: 9:00 AM - 6:00 PM</p>
+                                <p class="mb-1">Saturday: 10:00 AM - 4:00 PM</p>
+                                <p class="mb-0">Sunday: Closed</p>
+                            </div>
+                            <div>
+                                <h3 class="h5">Follow Us</h3>
+                                <div class="d-flex gap-3">
+                                    <a href="#" class="text-primary"><i class="fab fa-facebook-f fa-2x"></i></a>
+                                    <a href="#" class="text-primary"><i class="fab fa-twitter fa-2x"></i></a>
+                                    <a href="#" class="text-primary"><i class="fab fa-linkedin-in fa-2x"></i></a>
+                                    <a href="#" class="text-primary"><i class="fab fa-instagram fa-2x"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

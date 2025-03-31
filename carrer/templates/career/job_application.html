@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Apply for {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Apply for {{ job.title }}</h4>
+                    <p class="mb-0">{{ job.company.company_name }} - {{ job.location }}</p>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="applicationForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="resume" class="form-label">Resume/CV</label>
+                            <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx" required>
+                            <div class="form-text">
+                                Accepted formats: PDF, DOC, DOCX (Max size: 5MB)
+                                <div id="fileSizeWarning" class="text-danger d-none">File size exceeds 5MB limit</div>
+                            </div>
+                            <div id="filePreview" class="mt-2 d-none">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">File Preview</h6>
+                                        <p class="card-text" id="fileName"></p>
+                                        <p class="card-text" id="fileSize"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cover_letter" class="form-label">Cover Letter</label>
+                            <textarea class="form-control" id="cover_letter" name="cover_letter" rows="5" required
+                                    placeholder="Write your cover letter here..."></textarea>
+                            <div class="form-text">
+                                <span id="charCount">0</span>/1000 characters
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="expected_salary" class="form-label">Expected Salary</label>
+                                <input type="number" class="form-control" id="expected_salary" name="expected_salary" step="0.01">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="availability_date" class="form-label">Availability Date</label>
+                                <input type="date" class="form-control" id="availability_date" name="availability_date">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"
+                                    placeholder="Any additional information you'd like to share..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="submitButton">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                Submit Application
+                            </button>
+                            <a href="{% url 'job_detail' job.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Job Details Card -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Job Details</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Job Description</h6>
+                    <p>{{ job.description }}</p>
+
+                    <h6>Required Skills</h6>
+                    <p>{{ job.required_skills }}</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Job Type</h6>
+                            <p>{{ job.job_type }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Experience Level</h6>
+                            <p>{{ job.experience_level }}</p>
+                        </div>
+                    </div>
+
+                    {% if job.salary %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Salary</h6>
+                            <p>${{ job.salary }}</p>
+                        </div>
+                        {% endif %}
+                        {% if job.deadline %}
+                        <div class="col-md-6">
+                            <h6>Application Deadline</h6>
+                            <p>{{ job.deadline|date:"M d, Y" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// File validation and preview
+document.getElementById('resume').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    const preview = document.getElementById('filePreview');
+    const warning = document.getElementById('fileSizeWarning');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+
+    if (file) {
+        if (file.size > maxSize) {
+            warning.classList.remove('d-none');
+            preview.classList.add('d-none');
+            this.value = '';
+            return;
+        }
+
+        warning.classList.add('d-none');
+        preview.classList.remove('d-none');
+        fileName.textContent = `File name: ${file.name}`;
+        fileSize.textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    } else {
+        preview.classList.add('d-none');
+    }
+});
+
+// Character count for cover letter
+document.getElementById('cover_letter').addEventListener('input', function(e) {
+    const maxLength = 1000;
+    const currentLength = e.target.value.length;
+    const charCount = document.getElementById('charCount');
+    
+    charCount.textContent = currentLength;
+    if (currentLength > maxLength) {
+        charCount.classList.add('text-danger');
+    } else {
+        charCount.classList.remove('text-danger');
+    }
+});
+
+// Form submission loading state
+document.getElementById('applicationForm').addEventListener('submit', function() {
+    const button = document.getElementById('submitButton');
+    const spinner = button.querySelector('.spinner-border');
+    spinner.classList.remove('d-none');
+    button.disabled = true;
+});
+
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
+{% endblock %}

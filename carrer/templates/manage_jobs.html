@@ -1,0 +1,24 @@
+{% block content %}
+<h2>Manage Job Listings</h2>
+
+<table border="1">
+    <tr>
+        <th>Job Title</th>
+        <th>Company</th>
+        <th>Posted By</th>
+        <th>Actions</th>
+    </tr>
+    {% for job in jobs %}
+    <tr>
+        <td>{{ job.title }}</td>
+        <td>{{ job.company_name }}</td>
+        <td>{{ job.employer.username }}</td>
+        <td>
+            <a href="{% url 'delete_job' job.id %}">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<a href="{% url 'admin_dashboard' %}">Back to Dashboard</a>
+{% endblock %}

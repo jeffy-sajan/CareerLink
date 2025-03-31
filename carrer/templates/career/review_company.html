@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Review {{ company.company_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Review {{ company.company_name }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Rating</label>
+                            <div class="rating">
+                                {% for i in "12345"|make_list %}
+                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" class="d-none">
+                                <label for="star{{ i }}" class="star-label">
+                                    <i class="fas fa-star fa-2x"></i>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="review_text" class="form-label">Your Review</label>
+                            <textarea class="form-control" id="review_text" name="review_text" rows="5" required 
+                                    placeholder="Share your experience working with {{ company.company_name }}..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                            <a href="{% url 'company_profile' company.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating input {
+    display: none;
+}
+
+.star-label {
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.rating input:checked ~ .star-label,
+.rating .star-label:hover,
+.rating .star-label:hover ~ .star-label {
+    color: #ffd700;
+}
+</style>
+
+<script>
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
+{% endblock %} 
