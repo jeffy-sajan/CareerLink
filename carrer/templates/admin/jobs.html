@@ -1,0 +1,160 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Job Management</h1>
+    <div class="d-flex gap-2">
+        <form class="d-flex" method="GET">
+            <input type="text" name="search" class="form-control me-2" placeholder="Search jobs..." value="{{ search_query }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                {{ status|title|default:"All Jobs" }}
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item {% if status == 'all' %}active{% endif %}" href="?status=all">All Jobs</a></li>
+                <li><a class="dropdown-item {% if status == 'pending' %}active{% endif %}" href="?status=pending">Pending</a></li>
+                <li><a class="dropdown-item {% if status == 'approved' %}active{% endif %}" href="?status=approved">Approved</a></li>
+                <li><a class="dropdown-item {% if status == 'rejected' %}active{% endif %}" href="?status=rejected">Rejected</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-2">Total Jobs</h6>
+                        <h2 class="mb-0">{{ total_jobs }}</h2>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                        <i class="fas fa-briefcase fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-2">Pending</h6>
+                        <h2 class="mb-0">{{ pending_jobs }}</h2>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-2">Approved</h6>
+                        <h2 class="mb-0">{{ approved_jobs }}</h2>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                        <i class="fas fa-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-uppercase mb-2">Rejected</h6>
+                        <h2 class="mb-0">{{ rejected_jobs }}</h2>
+                    </div>
+                    <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                        <i class="fas fa-times fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Jobs Table -->
+<div class="card">
+    <div class="card-header bg-transparent">
+        <h5 class="mb-0">All Jobs</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Job Title</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Posted Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-secondary bg-opacity-10 p-2 me-3">
+                                    <i class="fas fa-briefcase"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ job.title }}</h6>
+                                    <small class="text-muted">{{ job.job_type }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ job.company.company_name }}</td>
+                        <td>{{ job.location }}</td>
+                        <td>{{ job.posted_at|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge {% if job.approval_status == 'approved' %}bg-success
+                                          {% elif job.approval_status == 'rejected' %}bg-danger
+                                          {% else %}bg-warning{% endif %}">
+                                {{ job.approval_status|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'job_detail' job.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if job.approval_status == 'pending' %}
+                                <a href="{% url 'approve_job' job.id %}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <a href="{% url 'reject_job' job.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No jobs found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

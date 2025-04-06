@@ -1,0 +1,102 @@
+/* Admin Dashboard Styles */
+
+/* Sidebar */
+#sidebar {
+    transition: width 0.3s ease;
+}
+
+#sidebar.collapsed {
+    width: 60px !important;
+}
+
+#sidebar.collapsed .nav-link span {
+    display: none;
+}
+
+#sidebar .nav-link {
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    margin: 0.2rem 0;
+    transition: all 0.3s;
+}
+
+#sidebar .nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+#sidebar .nav-link.active {
+    background-color: #0d6efd;
+}
+
+/* Cards */
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* Tables */
+.table {
+    vertical-align: middle;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+/* Badges */
+.badge {
+    padding: 0.5em 0.75em;
+}
+
+/* Icons in cards */
+.card .rounded-circle {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal */
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Forms */
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Buttons */
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Stats Cards */
+.card .card-body {
+    padding: 1.5rem;
+}
+
+.card h6.text-uppercase {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Charts */
+canvas {
+    max-width: 100%;
+} 

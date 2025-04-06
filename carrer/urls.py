@@ -29,7 +29,11 @@ from .views import (
     # Interview Management
     schedule_interview, manage_interview, submit_interview_feedback,
     # Notifications
-    get_notifications, delete_notification, delete_all_notifications
+    get_notifications, delete_notification, delete_all_notifications,
+    # Subscription URLs
+    subscription_plans, initiate_subscription, subscription_success, subscription_cancel,
+    # New admin views
+    admin_users, admin_jobs, admin_premium, admin_revenue, admin_settings
 )
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -48,9 +52,9 @@ def redirect_to_dashboard(request):
 # Admin URL patterns
 admin_patterns = [
     path('', admin_dashboard, name='admin_dashboard'),
-    path('users/', admin_dashboard, name='admin_users'),
+    path('users/', admin_users, name='admin_users'),
     path('users/<int:user_id>/delete/', delete_user, name='delete_user'),
-    path('jobs/', manage_jobs, name='admin_jobs'),
+    path('jobs/', admin_jobs, name='admin_jobs'),
     path('companies/', company_profile, name='admin_companies'),
     path('applications/', manage_applications, name='admin_applications'),
     path('jobs/<int:job_id>/approve/', approve_job, name='approve_job'),
@@ -145,4 +149,21 @@ urlpatterns = [
     path('notifications/', get_notifications, name='notifications'),
     path('notifications/<int:notification_id>/delete/', delete_notification, name='delete_notification'),
     path('notifications/delete-all/', delete_all_notifications, name='delete_all_notifications'),
+
+    # Subscription URLs
+    path('subscription/plans/', subscription_plans, name='subscription_plans'),
+    path('subscription/initiate/<str:plan_type>/', initiate_subscription, name='initiate_subscription'),
+    path('subscription/success/', subscription_success, name='subscription_success'),
+    path('subscription/cancel/', subscription_cancel, name='subscription_cancel'),
+
+    # New URL pattern
+    path('update-application-status/<int:application_id>/', update_application_status, name='update_application_status'),
+
+    # New admin URLs
+    path('admin/users/', admin_users, name='admin_users'),
+    path('admin/jobs/', admin_jobs, name='admin_jobs'),
+    path('admin/premium/', admin_premium, name='admin_premium'),
+    path('admin/revenue/', admin_revenue, name='admin_revenue'),
+    path('admin/applications/', manage_applications, name='admin_applications'),
+    path('admin/settings/', admin_settings, name='admin_settings'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

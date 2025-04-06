@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from .models import (
     JobSeekerProfile, EmployerProfile, Job, JobApplication,
-    Category, SavedJob, CompanyReview, Notification, Interview, InterviewFeedback
+    Category, SavedJob, CompanyReview, Notification, Interview, InterviewFeedback, Subscription
 )
 from .forms import JobSeekerProfileForm, JobApplicationForm, EmployerProfileForm, JobForm
 import os
@@ -18,6 +18,13 @@ import json
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from .razorpay_utils import create_subscription, verify_payment, get_subscription_plans
+from django.conf import settings
+from datetime import datetime, timedelta
+import razorpay
+
+# Initialize Razorpay client
+client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 # Load Admin Credentials from Environment Variables (Security Fix)
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
@@ -112,8 +119,25 @@ def admin_dashboard(request):
     total_applications = JobApplication.objects.count()
     recent_applications = JobApplication.objects.select_related('job', 'applicant').order_by('-applied_at')[:5]
     
-    # Get all users for management
-    users = User.objects.all().order_by('-date_joined')
+    # Get premium subscription statistics
+    premium_subscriptions = Subscription.objects.filter(is_active=True).select_related(
+        'user'
+    ).order_by('-start_date')
+    
+    # Calculate revenue statistics
+    job_seeker_revenue = Subscription.objects.filter(
+        subscription_type='job_seeker'
+    ).count() * settings.JOB_SEEKER_PREMIUM_PRICE
+    
+    employer_revenue = Subscription.objects.filter(
+        subscription_type='employer'
+    ).count() * settings.EMPLOYER_PREMIUM_PRICE
+    
+    total_revenue = job_seeker_revenue + employer_revenue
+    
+    # Get premium user counts
+    premium_job_seekers = JobSeekerProfile.objects.filter(is_premium=True).count()
+    premium_employers = EmployerProfile.objects.filter(is_premium=True).count()
     
     context = {
         'total_users': total_users,
@@ -123,8 +147,14 @@ def admin_dashboard(request):
         'pending_jobs': pending_jobs,
         'approved_jobs': approved_jobs,
         'total_applications': total_applications,
-        'applications': recent_applications,
-        'users': users,
+        'recent_applications': recent_applications,
+        # Premium statistics
+        'premium_subscriptions': premium_subscriptions,
+        'job_seeker_revenue': job_seeker_revenue,
+        'employer_revenue': employer_revenue,
+        'total_revenue': total_revenue,
+        'premium_job_seekers': premium_job_seekers,
+        'premium_employers': premium_employers,
     }
     
     return render(request, 'admin_dashboard.html', context)
@@ -234,7 +264,9 @@ def employer_dashboard(request):
         jobs = Job.objects.filter(company=employer_profile).order_by('-posted_at')
         recent_applications = JobApplication.objects.filter(
             job__company=employer_profile
-        ).select_related('job', 'applicant').order_by('-applied_at')[:5]
+        ).select_related('job', 'applicant', 'applicant__jobseekerprofile').order_by(
+            '-applicant__jobseekerprofile__is_premium', '-applied_at'
+        )[:5]
         
         # Calculate application statistics
         total_applications = JobApplication.objects.filter(
@@ -268,26 +300,44 @@ def employer_dashboard(request):
 
 @login_required
 def post_job(request):
+    """Post a new job"""
     if not hasattr(request.user, 'employerprofile'):
-        messages.error(request, 'You must be an employer to post jobs.')
-        return redirect('home')
+        messages.error(request, "You need an employer profile to post jobs.")
+        return redirect('employer_profile')
+    
+    employer_profile = request.user.employerprofile
+    
+    # Check job posting limit for non-premium employers
+    if not employer_profile.is_premium:
+        active_jobs_count = Job.objects.filter(
+            company=employer_profile,
+            deadline__gte=timezone.now()
+        ).count()
         
+        if active_jobs_count >= employer_profile.job_posting_limit:
+            messages.error(
+                request,
+                f"You have reached your job posting limit of {employer_profile.job_posting_limit} active jobs. "
+                "Upgrade to premium for unlimited job postings."
+            )
+            return redirect('subscription_plans')
+    
     if request.method == 'POST':
         form = JobForm(request.POST)
         if form.is_valid():
             job = form.save(commit=False)
-            job.company = request.user.employerprofile  # Set the company field
+            job.company = employer_profile
             job.save()
             messages.success(request, 'Job posted successfully!')
-            return redirect('employer_dashboard')
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            return redirect('job_detail', job_id=job.id)
     else:
         form = JobForm()
     
     context = {
         'form': form,
-        'categories': Category.objects.all(),
+        'is_premium': employer_profile.is_premium,
+        'job_limit': employer_profile.job_posting_limit,
+        'active_jobs': Job.objects.filter(company=employer_profile, deadline__gte=timezone.now()).count()
     }
     return render(request, 'career/post_job.html', context)
 
@@ -345,7 +395,7 @@ def update_application_status(request, application_id):
         new_status = data.get('status')
         
         # Validate status
-        valid_statuses = dict(JobApplication.STATUS_CHOICES).keys()
+        valid_statuses = ['Pending', 'Reviewed', 'Shortlisted', 'Interview', 'Accepted', 'Rejected']
         if new_status not in valid_statuses:
             return JsonResponse({'status': 'error', 'message': 'Invalid status'}, status=400)
         
@@ -532,7 +582,7 @@ def delete_job(request, job_id):
 @staff_member_required
 def manage_applications(request):
     applications = JobApplication.objects.select_related("job", "applicant").all()
-    return render(request, "career/manage_applications.html", {"applications": applications})
+    return render(request, "admin/applications.html", {"applications": applications})
 
 # Home and General Pages
 def home(request):
@@ -660,7 +710,7 @@ def employer_applications(request):
         'job',
         'applicant',
         'applicant__jobseekerprofile'
-    ).order_by('-applied_at')
+    ).order_by('-applicant__jobseekerprofile__is_premium', '-applied_at')
     
     # Apply search filter if query exists
     if search_query:
@@ -1074,3 +1124,420 @@ def employer_jobs(request):
     ).select_related('company').order_by('-created_at')
     
     # ... rest of the existing employer_jobs view code ...
+
+@login_required
+def subscription_plans(request):
+    """Display available subscription plans"""
+    # Get user type
+    user_type = 'job_seeker' if hasattr(request.user, 'jobseekerprofile') else 'employer'
+    
+    # Check for active subscription
+    has_active_subscription = Subscription.objects.filter(
+        user=request.user,
+        is_active=True
+    ).exists()
+    
+    # Get available plans
+    plans = get_subscription_plans(user_type)
+    
+    context = {
+        'plans': plans,
+        'user_type': user_type,
+        'has_active_subscription': has_active_subscription,
+        'key_id': settings.RAZORPAY_KEY_ID
+    }
+    return render(request, 'career/subscription_plans.html', context)
+
+@login_required
+def initiate_subscription(request, plan_type):
+    """Initiate subscription process"""
+    if plan_type not in ['job_seeker', 'employer']:
+        messages.error(request, 'Invalid subscription type')
+        return redirect('subscription_plans')
+    
+    # Get user type and verify it matches the plan type
+    user_type = 'job_seeker' if hasattr(request.user, 'jobseekerprofile') else 'employer'
+    if user_type != plan_type:
+        messages.error(request, 'Invalid subscription plan for your account type')
+        return redirect('subscription_plans')
+    
+    try:
+        # Get available plans
+        plans = get_subscription_plans(user_type)
+        
+        # Find the selected plan
+        selected_plan = next((plan for plan in plans if plan['type'] == plan_type), None)
+        if not selected_plan:
+            messages.error(request, 'Plan not found')
+            return redirect('subscription_plans')
+        
+        # Create order in Razorpay
+        order = create_subscription(
+            plan_id=plan_type,  # Just pass the plan type instead of plan ID
+            user_email=request.user.email,
+            user_name=request.user.get_full_name()
+        )
+        
+        if not order or 'id' not in order:
+            messages.error(request, 'Error creating order. Please try again.')
+            return redirect('subscription_plans')
+        
+        return render(request, 'career/subscription_payment.html', {
+            'order': order,
+            'plan': selected_plan,
+            'key_id': settings.RAZORPAY_KEY_ID
+        })
+        
+    except Exception as e:
+        messages.error(request, f'Error initiating subscription: {str(e)}')
+        return redirect('subscription_plans')
+
+@login_required
+def subscription_success(request):
+    """Handle successful subscription"""
+    try:
+        # Get payment details from POST data
+        payment_id = request.POST.get('razorpay_payment_id')
+        order_id = request.POST.get('razorpay_order_id')
+        signature = request.POST.get('razorpay_signature')
+
+        if not all([payment_id, order_id, signature]):
+            messages.error(request, 'Missing payment information')
+            return redirect('subscription_plans')
+
+        # Check if this payment was already processed
+        if Subscription.objects.filter(razorpay_payment_id=payment_id).exists():
+            messages.warning(request, 'This payment has already been processed!')
+            return redirect('subscription_plans')
+
+        # Verify payment signature
+        try:
+            client.utility.verify_payment_signature({
+                'razorpay_payment_id': payment_id,
+                'razorpay_order_id': order_id,
+                'razorpay_signature': signature
+            })
+        except Exception as e:
+            messages.error(request, f'Payment signature verification failed: {str(e)}')
+            return redirect('subscription_plans')
+
+        # Fetch payment details from Razorpay
+        try:
+            payment = client.payment.fetch(payment_id)
+            order = client.order.fetch(order_id)
+        except Exception as e:
+            messages.error(request, f'Error fetching payment details: {str(e)}')
+            return redirect('subscription_plans')
+
+        if payment.get('status') == 'captured':
+            # Get plan type from order notes
+            plan_id = order['notes'].get('plan_id')
+            user_type = 'job_seeker' if 'job_seeker' in plan_id else 'employer'
+            
+            # Create subscription record
+            subscription = Subscription.objects.create(
+                user=request.user,
+                subscription_type=user_type,
+                is_active=True,
+                end_date=timezone.now() + timedelta(days=365),  # 1 year subscription
+                razorpay_payment_id=payment_id,
+                razorpay_subscription_id=order_id  # Using order_id as subscription_id
+            )
+            
+            # Update user profile based on user type
+            if user_type == 'job_seeker':
+                # Get or create JobSeekerProfile
+                try:
+                    profile = JobSeekerProfile.objects.get(user=request.user)
+                    profile.is_premium = True
+                    profile.save()
+                except JobSeekerProfile.DoesNotExist:
+                    profile = JobSeekerProfile.objects.create(
+                        user=request.user,
+                        is_premium=True,
+                        skills='',
+                        experience='',
+                        education=''
+                    )
+                messages.success(request, 'Your premium job seeker subscription has been activated successfully! 👑')
+            
+            elif user_type == 'employer':
+                # Get or create EmployerProfile
+                try:
+                    profile = EmployerProfile.objects.get(user=request.user)
+                    profile.is_premium = True
+                    profile.job_posting_limit = 999999  # Set a high number for unlimited posts
+                    profile.save()
+                except EmployerProfile.DoesNotExist:
+                    profile = EmployerProfile.objects.create(
+                        user=request.user,
+                        is_premium=True,
+                        job_posting_limit=999999,
+                        company_name=request.user.email.split('@')[0],
+                        company_description='',
+                        company_website='',
+                        company_location=''
+                    )
+                messages.success(request, 'Your premium employer subscription has been activated successfully! 👑')
+            
+            return redirect('subscription_plans')
+        else:
+            messages.error(request, 'Payment was not successful. Please try again.')
+            return redirect('subscription_plans')
+            
+    except Exception as e:
+        messages.error(request, f'Error processing subscription: {str(e)}')
+        return redirect('subscription_plans')
+
+@login_required
+def subscription_cancel(request):
+    """Handle subscription cancellation"""
+    try:
+        subscription = Subscription.objects.get(user=request.user, is_active=True)
+        subscription.is_active = False
+        subscription.save()
+        
+        # Update user profile
+        if hasattr(request.user, 'jobseekerprofile'):
+            profile = request.user.jobseekerprofile
+            profile.is_premium = False
+            profile.save()
+        else:
+            profile = request.user.employerprofile
+            profile.is_premium = False
+            profile.job_posting_limit = settings.STANDARD_JOB_POSTING_LIMIT
+            profile.save()
+        
+        messages.success(request, 'Subscription cancelled successfully')
+    except Subscription.DoesNotExist:
+        messages.error(request, 'No active subscription found')
+    
+    return redirect('subscription_plans')
+
+@login_required
+def job_applications(request, job_id):
+    """View all applications for a specific job"""
+    job = get_object_or_404(Job, id=job_id)
+    
+    # Check if user is the job owner
+    if request.user != job.employer:
+        messages.error(request, "You don't have permission to view these applications.")
+        return redirect('job_list')
+    
+    # Get applications and sort premium applicants first
+    applications = JobApplication.objects.filter(job=job).select_related(
+        'applicant', 'applicant__jobseekerprofile'
+    ).order_by('-applicant__jobseekerprofile__is_premium', '-applied_at')
+    
+    context = {
+        'job': job,
+        'applications': applications,
+    }
+    return render(request, 'career/job_applications.html', context)
+
+@staff_member_required
+def admin_users(request):
+    """Admin view for managing users"""
+    # Get search query
+    search_query = request.GET.get('search', '')
+    user_type = request.GET.get('type', 'all')
+    
+    # Base queryset
+    users = User.objects.all().order_by('-date_joined')
+    
+    # Apply filters
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+    
+    if user_type == 'job_seekers':
+        users = users.filter(jobseekerprofile__isnull=False)
+    elif user_type == 'employers':
+        users = users.filter(employerprofile__isnull=False)
+    elif user_type == 'admins':
+        users = users.filter(is_superuser=True)
+    
+    # Get user statistics
+    total_users = User.objects.count()
+    total_job_seekers = JobSeekerProfile.objects.count()
+    total_employers = EmployerProfile.objects.count()
+    total_admins = User.objects.filter(is_superuser=True).count()
+    
+    context = {
+        'users': users,
+        'user_type': user_type,
+        'search_query': search_query,
+        'total_users': total_users,
+        'total_job_seekers': total_job_seekers,
+        'total_employers': total_employers,
+        'total_admins': total_admins,
+        'active_tab': 'users'
+    }
+    return render(request, 'admin/users.html', context)
+
+@staff_member_required
+def admin_jobs(request):
+    """Admin view for managing jobs"""
+    # Get filters
+    status = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '')
+    
+    # Base queryset
+    jobs = Job.objects.all().select_related('company').order_by('-posted_at')
+    
+    # Apply filters
+    if status != 'all':
+        jobs = jobs.filter(approval_status=status)
+    
+    if search_query:
+        jobs = jobs.filter(
+            Q(title__icontains=search_query) |
+            Q(company__company_name__icontains=search_query) |
+            Q(location__icontains=search_query)
+        )
+    
+    # Get job statistics
+    total_jobs = Job.objects.count()
+    pending_jobs = Job.objects.filter(approval_status='pending').count()
+    approved_jobs = Job.objects.filter(approval_status='approved').count()
+    rejected_jobs = Job.objects.filter(approval_status='rejected').count()
+    
+    context = {
+        'jobs': jobs,
+        'status': status,
+        'search_query': search_query,
+        'total_jobs': total_jobs,
+        'pending_jobs': pending_jobs,
+        'approved_jobs': approved_jobs,
+        'rejected_jobs': rejected_jobs,
+        'active_tab': 'jobs'
+    }
+    return render(request, 'admin/jobs.html', context)
+
+@staff_member_required
+def admin_premium(request):
+    """Admin view for managing premium users"""
+    # Get premium user counts
+    premium_job_seekers = JobSeekerProfile.objects.filter(is_premium=True).count()
+    premium_employers = EmployerProfile.objects.filter(is_premium=True).count()
+    
+    # Get all premium users with their subscription details
+    premium_users = []
+    
+    # Get premium job seekers
+    job_seekers = User.objects.filter(jobseekerprofile__is_premium=True).select_related('jobseekerprofile')
+    for user in job_seekers:
+        subscription = Subscription.objects.filter(user=user).order_by('-start_date').first()
+        if subscription:
+            premium_users.append({
+                'get_full_name': user.get_full_name() or user.username,
+                'email': user.email,
+                'type': 'jobseeker',
+                'subscription': subscription
+            })
+    
+    # Get premium employers
+    employers = User.objects.filter(employerprofile__is_premium=True).select_related('employerprofile')
+    for user in employers:
+        subscription = Subscription.objects.filter(user=user).order_by('-start_date').first()
+        if subscription:
+            premium_users.append({
+                'get_full_name': user.get_full_name() or user.username,
+                'email': user.email,
+                'type': 'employer',
+                'subscription': subscription
+            })
+    
+    context = {
+        'premium_jobseekers': premium_job_seekers,
+        'premium_employers': premium_employers,
+        'premium_users': premium_users,
+        'active_tab': 'premium'
+    }
+    return render(request, 'admin/premium.html', context)
+
+@staff_member_required
+def admin_revenue(request):
+    """Admin view for revenue analytics"""
+    # Calculate revenue statistics
+    job_seeker_subscriptions = Subscription.objects.filter(subscription_type='job_seeker').count()
+    employer_subscriptions = Subscription.objects.filter(subscription_type='employer').count()
+    
+    job_seeker_revenue = job_seeker_subscriptions * settings.JOB_SEEKER_PREMIUM_PRICE
+    employer_revenue = employer_subscriptions * settings.EMPLOYER_PREMIUM_PRICE
+    total_revenue = job_seeker_revenue + employer_revenue
+    
+    context = {
+        'job_seeker_revenue': job_seeker_revenue,
+        'employer_revenue': employer_revenue,
+        'total_revenue': total_revenue,
+        'active_tab': 'revenue'
+    }
+    return render(request, 'admin/revenue.html', context)
+
+@staff_member_required
+def admin_applications(request):
+    """Admin view for managing job applications"""
+    # Get application statistics
+    total_applications = JobApplication.objects.count()
+    pending_applications = JobApplication.objects.filter(status='pending').count()
+    shortlisted_applications = JobApplication.objects.filter(status='shortlisted').count()
+    hired_applications = JobApplication.objects.filter(status='hired').count()
+    
+    # Base queryset with all necessary related data
+    applications = JobApplication.objects.select_related(
+        'job',
+        'applicant',
+        'job__company',
+        'applicant__jobseekerprofile'
+    ).order_by('-applied_at')
+    
+    # Get filter status from query parameters
+    status = request.GET.get('status', 'all')
+    if status != 'all':
+        applications = applications.filter(status=status)
+    
+    # Get search query
+    search_query = request.GET.get('search', '')
+    if search_query:
+        applications = applications.filter(
+            Q(applicant__first_name__icontains=search_query) |
+            Q(applicant__last_name__icontains=search_query) |
+            Q(job__title__icontains=search_query) |
+            Q(job__company__company_name__icontains=search_query)
+        )
+    
+    context = {
+        'applications': applications,
+        'total_applications': total_applications,
+        'pending_applications': pending_applications,
+        'shortlisted_applications': shortlisted_applications,
+        'hired_applications': hired_applications,
+        'status': status,
+        'search_query': search_query,
+        'active_tab': 'applications'
+    }
+    return render(request, 'admin/applications.html', context)
+
+@staff_member_required
+def admin_settings(request):
+    """Admin settings view"""
+    if request.method == 'POST':
+        # Handle settings update
+        try:
+            settings.JOB_SEEKER_PREMIUM_PRICE = int(request.POST.get('job_seeker_price', 999))
+            settings.EMPLOYER_PREMIUM_PRICE = int(request.POST.get('employer_price', 1999))
+            messages.success(request, 'Settings updated successfully!')
+        except ValueError:
+            messages.error(request, 'Invalid price values provided.')
+    
+    context = {
+        'job_seeker_price': settings.JOB_SEEKER_PREMIUM_PRICE,
+        'employer_price': settings.EMPLOYER_PREMIUM_PRICE,
+        'active_tab': 'settings'
+    }
+    return render(request, 'admin/settings.html', context)

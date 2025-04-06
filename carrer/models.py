@@ -26,9 +26,10 @@ class JobSeekerProfile(models.Model):
     preferred_location = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    is_premium = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.user.username
+        return f"{self.user.username}'s Profile"
 
     class Meta:
         indexes = [
@@ -57,9 +58,11 @@ class EmployerProfile(models.Model):
     founded_year = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    is_premium = models.BooleanField(default=False)
+    job_posting_limit = models.IntegerField(default=3)  # Default limit for non-premium users
 
     def __str__(self):
-        return f"Employer: {self.user.username} - {self.company_name}"
+        return self.company_name
 
     class Meta:
         indexes = [
@@ -326,3 +329,26 @@ class InterviewFeedback(models.Model):
 
     def __str__(self):
         return f"Feedback for {self.interview}"
+
+class Subscription(models.Model):
+    SUBSCRIPTION_TYPES = [
+        ('job_seeker', 'Job Seeker Premium'),
+        ('employer', 'Employer Premium'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    subscription_type = models.CharField(max_length=20, choices=SUBSCRIPTION_TYPES)
+    is_active = models.BooleanField(default=False)
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField()
+    razorpay_subscription_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.subscription_type}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['end_date']),
+        ]

@@ -148,3 +148,14 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jeffysajan81@gmail.com'  # Replace with your Gmail address
 EMAIL_HOST_PASSWORD = 'uggc kela hobs dzfs'  # Replace with your Gmail app password
 DEFAULT_FROM_EMAIL = 'jeffysajan81@gmail.com'  # Replace with your Gmail address
+
+# Razorpay Settings
+RAZORPAY_KEY_ID = 'rzp_test_WTd9gQw4dqpGxk'  # Replace with your actual key
+RAZORPAY_KEY_SECRET = 'O7wGDbLk7B2Fcv2CTIP6Wm12'  # Replace with your actual secret
+
+# Premium Prices (in INR)
+JOB_SEEKER_PREMIUM_PRICE = 999  # ₹999
+EMPLOYER_PREMIUM_PRICE = 1999   # ₹1999
+
+# Job Posting Limits
+STANDARD_JOB_POSTING_LIMIT = 3    # Standard users can post 3 jobs

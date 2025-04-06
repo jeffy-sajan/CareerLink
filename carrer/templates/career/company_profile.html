@@ -1,121 +1,101 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}{{ company.company_name }} - Company Profile{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Company Header -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            {% if company.profile_picture %}
-            <img src="{{ company.profile_picture.url }}" alt="{{ company.company_name }}" class="img-fluid rounded">
-            {% else %}
-            <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="height: 200px;">
-                <i class="fas fa-building fa-3x"></i>
-            </div>
-            {% endif %}
-        </div>
-        <div class="col-md-9">
-            <h1>{{ company.company_name }}</h1>
-            <div class="d-flex align-items-center mb-2">
-                <span class="badge bg-primary me-2">{{ company.company_size }}</span>
-                <span class="badge bg-secondary">{{ company.industry }}</span>
-            </div>
-            {% if company.company_website %}
-            <p><i class="fas fa-globe"></i> <a href="{{ company.company_website }}" target="_blank">{{ company.company_website }}</a></p>
-            {% endif %}
-            {% if company.founded_year %}
-            <p><i class="fas fa-calendar"></i> Founded in {{ company.founded_year }}</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Company Description -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">About Us</h5>
-            <p class="card-text">{{ company.company_description }}</p>
-        </div>
-    </div>
-
-    <!-- Active Jobs -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Active Job Listings</h5>
-        </div>
-        <div class="card-body">
-            {% if active_jobs %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Position</th>
-                            <th>Location</th>
-                            <th>Type</th>
-                            <th>Posted</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for job in active_jobs %}
-                        <tr>
-                            <td>{{ job.title }}</td>
-                            <td>{{ job.location }}</td>
-                            <td><span class="badge bg-info">{{ job.job_type }}</span></td>
-                            <td>{{ job.posted_at|date:"M d, Y" }}</td>
-                            <td>
-                                <a href="{% url 'job_detail' job.id %}" class="btn btn-sm btn-primary">View Details</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-center">No active job listings at the moment.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Company Reviews -->
-    <div class="card">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Company Reviews</h5>
-            {% if user.is_authenticated and not user_reviewed %}
-            <a href="{% url 'review_company' company.id %}" class="btn btn-light btn-sm">Write a Review</a>
-            {% endif %}
-        </div>
-        <div class="card-body">
-            {% if reviews %}
-            <div class="row">
-                {% for review in reviews %}
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="card-subtitle text-muted">{{ review.reviewer.get_full_name }}</h6>
-                                <div class="rating">
-                                    {% for i in "12345"|make_list %}
-                                    <i class="fas fa-star {% if forloop.counter <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <p class="card-text">{{ review.review_text }}</p>
-                            <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
-                        </div>
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">{{ company.company_name }}</h4>
+                        {% if company.is_premium %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-crown me-1"></i>Premium Employer
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
-                {% endfor %}
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5 class="card-title">About the Company</h5>
+                        <p>{{ company.company_description }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="card-title">Contact Information</h5>
+                        <p><strong>Email:</strong> {{ company.user.email }}</p>
+                        {% if company.phone_number %}
+                        <p><strong>Phone:</strong> {{ company.phone_number }}</p>
+                        {% endif %}
+                        {% if company.company_website %}
+                        <p><strong>Website:</strong> <a href="{{ company.company_website }}" target="_blank">{{ company.company_website }}</a></p>
+                        {% endif %}
+                        {% if company.location %}
+                        <p><strong>Location:</strong> {{ company.location }}</p>
+                        {% endif %}
+                    </div>
+
+                    {% if active_jobs %}
+                    <div class="mb-4">
+                        <h5 class="card-title">Active Job Openings</h5>
+                        <div class="list-group">
+                            {% for job in active_jobs %}
+                            <a href="{% url 'job_detail' job.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ job.title }}</h6>
+                                    <small>Posted {{ job.posted_at|timesince }} ago</small>
+                                </div>
+                                <p class="mb-1">{{ job.location }}</p>
+                                <small>{{ job.job_type }} • {{ job.experience_level }}</small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% else %}
-            <p class="text-center">No reviews yet. Be the first to review this company!</p>
-            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Company Reviews</h5>
+                </div>
+                <div class="card-body">
+                    {% if reviews %}
+                    <div class="list-group">
+                        {% for review in reviews %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">{{ review.reviewer.get_full_name }}</h6>
+                                <small>{{ review.created_at|date }}</small>
+                            </div>
+                            <div class="mb-2">
+                                {% for i in "12345"|make_list %}
+                                <i class="fas fa-star {% if forloop.counter <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                            <p class="mb-1">{{ review.review_text }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No reviews yet.</p>
+                    {% endif %}
+
+                    {% if user.is_authenticated and user != company.user %}
+                    <div class="mt-3">
+                        <a href="{% url 'review_company' company.id %}" class="btn btn-primary w-100">
+                            <i class="fas fa-star me-2"></i>Write a Review
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
-<style>
-.rating {
-    color: #ffd700;
-}
-</style>
 {% endblock %} 

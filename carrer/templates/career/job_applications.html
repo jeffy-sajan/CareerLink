@@ -1,55 +1,183 @@
 {% extends 'base.html' %}
-{% block title %}Applications for {{ job.title }}{% endblock %}
+
+{% block title %}Applications - {{ job.title }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Applications for {{ job.title }}</h2>
+    <h2 class="mb-4">Applications for {{ job.title }}</h2>
     
     {% if applications %}
-        <table class="table table-bordered mt-3">
-            <thead>
-                <tr>
-                    <th>Applicant Name</th>
-                    <th>Email</th>
-                    <th>Resume</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for app in applications %}
-                <tr>
-                    <td>{{ app.applicant.first_name }} {{ app.applicant.last_name }}</td>
-                    <td>{{ app.applicant.email }}</td>
-                    <td>
-                        {% if app.resume %}
-                            <a href="{{ app.resume.url }}" class="btn btn-success btn-sm" download>Download</a>
-                        {% else %}
-                            <span class="text-muted">No Resume</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if app.status == 'pending' %}
-                            <span class="badge bg-warning">Pending</span>
-                        {% elif app.status == 'accepted' %}
-                            <span class="badge bg-success">Accepted</span>
-                        {% else %}
-                            <span class="badge bg-danger">Rejected</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <form method="POST" action="{% url 'update_application_status' app.id %}">
-                            {% csrf_token %}
-                            <button type="submit" name="status" value="accepted" class="btn btn-success btn-sm">Accept</button>
-                            <button type="submit" name="status" value="rejected" class="btn btn-danger btn-sm">Reject</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="applications-list">
+        {% for application in applications %}
+        <div class="application-card {% if application.applicant.jobseekerprofile.is_premium %}premium-application{% endif %}">
+            <div class="applicant-info">
+                <h3>
+                    {{ application.applicant.get_full_name }}
+                    {% if application.applicant.jobseekerprofile.is_premium %}
+                    <span class="premium-badge" title="Premium Applicant">👑</span>
+                    {% endif %}
+                </h3>
+                <p class="application-date">Applied on: {{ application.applied_at|date:"F d, Y" }}</p>
+                <p class="application-status">Status: {{ application.status }}</p>
+                {% if application.applicant.jobseekerprofile.is_premium %}
+                <p class="premium-note">Premium Applicant - Priority Consideration</p>
+                {% endif %}
+            </div>
+            
+            <div class="application-actions">
+                <a href="{% url 'view_application' application.id %}" class="btn btn-primary">View Details</a>
+                <select class="status-select" data-application-id="{{ application.id }}">
+                    <option value="Pending" {% if application.status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Reviewed" {% if application.status == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+                    <option value="Shortlisted" {% if application.status == 'Shortlisted' %}selected{% endif %}>Shortlisted</option>
+                    <option value="Interview" {% if application.status == 'Interview' %}selected{% endif %}>Interview</option>
+                    <option value="Accepted" {% if application.status == 'Accepted' %}selected{% endif %}>Accepted</option>
+                    <option value="Rejected" {% if application.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <p class="text-muted">No applications yet.</p>
+    <p>No applications yet.</p>
     {% endif %}
 </div>
+
+<style>
+.applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.application-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s ease;
+}
+
+.application-card:hover {
+    transform: translateY(-2px);
+}
+
+.premium-application {
+    background: linear-gradient(to right, #fff, #f8f9fa);
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #ffd700;
+}
+
+.applicant-info h3 {
+    margin: 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.premium-badge {
+    display: inline-block;
+    font-size: 1.2em;
+    vertical-align: middle;
+}
+
+.premium-note {
+    color: #ffa500;
+    font-size: 0.9em;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+.application-date, .application-status {
+    margin: 5px 0;
+    color: #666;
+}
+
+.application-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.status-select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+</style>
+
+<script>
+document.querySelectorAll('.status-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const applicationId = this.dataset.applicationId;
+        const newStatus = this.value;
+        
+        fetch(`/update-application-status/${applicationId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                alert('Application status updated successfully!');
+            } else {
+                // Show error message
+                alert('Error updating application status');
+                // Reset select to previous value
+                this.value = this.getAttribute('data-previous-value');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating application status');
+            // Reset select to previous value
+            this.value = this.getAttribute('data-previous-value');
+        });
+        
+        // Store current value as previous value
+        this.setAttribute('data-previous-value', newStatus);
+    });
+});
+
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
 {% endblock %}

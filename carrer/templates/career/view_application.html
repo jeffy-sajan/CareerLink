@@ -1,266 +1,246 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Application Details{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-md-10 mx-auto">
-            <!-- Header Section -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="text-primary fw-bold">Application Details</h2>
-                {% if application.job.company.user == request.user %}
-                    <a href="{% url 'employer_applications' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Applications
-                    </a>
-                {% else %}
-                    <a href="{% url 'applied_jobs' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to My Applications
-                    </a>
-                {% endif %}
-            </div>
-
-            <!-- Main Card -->
-            <div class="card border-0 shadow-lg">
-                <div class="card-body p-4">
-                    <!-- Job Information Section -->
-                    <div class="mb-5">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="flex-shrink-0">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-3">
-                                    <i class="fas fa-briefcase fa-2x text-primary"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h4 class="mb-1">{{ application.job.title }}</h4>
-                                <p class="text-muted mb-0">{{ application.job.company.company_name }}</p>
-                </div>
-                            <div class="text-end">
-                                <span class="badge {% if application.status == 'Accepted' %}bg-success
-                                                  {% elif application.status == 'Rejected' %}bg-danger
-                                                  {% elif application.status == 'Reviewed' %}bg-info
-                                                  {% else %}bg-warning{% endif %} fs-6">
-                                    {{ application.status }}
-                                </span>
-                                <p class="text-muted mt-2 mb-0">Applied on {{ application.applied_at|date:"F d, Y" }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cover Letter Section -->
-                    <div class="mb-5">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                                <i class="fas fa-file-alt text-primary"></i>
-                            </div>
-                            <h5 class="mb-0">Cover Letter</h5>
-                    </div>
-                        <div class="card bg-light border-0">
-                            <div class="card-body">
-                                <div class="p-3">
-                                    {{ application.cover_letter|linebreaks }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-                    <!-- Resume Section -->
-                    {% if application.resume %}
-                        <div class="mb-5">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="fas fa-file-pdf text-primary"></i>
-                                </div>
-                                <h5 class="mb-0">Resume</h5>
-                            </div>
-                            <div class="card bg-light border-0">
-                                <div class="card-body">
-                                    <div class="p-3">
-                                        <a href="{{ application.resume.url }}" class="btn btn-primary" download>
-                                            <i class="fas fa-download me-2"></i>Download Resume
-                        </a>
-                    </div>
-                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <!-- Interview Information -->
-                    {% with interview=application.interviews.first %}
-                    {% if interview %}
-                        <div class="mb-5">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="fas fa-calendar-check text-primary"></i>
-                                </div>
-                                <h5 class="mb-0">Interview Details</h5>
-                            </div>
-                            <div class="card bg-light border-0">
-                <div class="card-body">
-                                    <div class="p-3">
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <p class="mb-1 text-muted">Date & Time</p>
-                                                <p class="mb-0 fw-bold">{{ interview.scheduled_date|date:"F d, Y, g:i A" }}</p>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <p class="mb-1 text-muted">Duration</p>
-                                                <p class="mb-0 fw-bold">{{ interview.duration }} minutes</p>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <p class="mb-1 text-muted">Type</p>
-                                                <p class="mb-0 fw-bold">{{ interview.get_interview_type_display }}</p>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <p class="mb-1 text-muted">Location/Link</p>
-                                                <p class="mb-0 fw-bold">{{ interview.location_or_link }}</p>
-                                            </div>
-                                            {% if interview.notes %}
-                                                <div class="col-12 mb-3">
-                                                    <p class="mb-1 text-muted">Notes</p>
-                                                    <p class="mb-0 fw-bold">{{ interview.notes }}</p>
-                                                </div>
-                                            {% endif %}
-                                            <div class="col-12">
-                                                <p class="mb-1 text-muted">Status</p>
-                                                <span class="badge {% if interview.status == 'scheduled' %}bg-primary
-                                                                  {% elif interview.status == 'completed' %}bg-success
-                                                                  {% elif interview.status == 'cancelled' %}bg-danger
-                                                                  {% else %}bg-warning{% endif %} fs-6">
-                                                    {{ interview.get_status_display }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                    </div>
-
-                            <!-- Interview Actions (Employer Only) -->
-                            {% if application.job.company.user == request.user and interview.status == 'scheduled' %}
-                                <div class="mt-4">
-                                    <div class="btn-group">
-                                        <a href="{% url 'manage_interview' interview.id %}" class="btn btn-warning">
-                                            <i class="fas fa-calendar-alt me-2"></i>Reschedule
-                                        </a>
-                                <button type="button" 
-                                                class="btn btn-danger" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#cancelInterviewModal">
-                                            <i class="fas fa-times me-2"></i>Cancel
-                                </button>
-                                <button type="button" 
-                                                class="btn btn-success" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#completeInterviewModal">
-                                            <i class="fas fa-check me-2"></i>Mark as Completed
-                                </button>
-                            </div>
-                                    
-                                    <!-- Cancel Interview Modal -->
-                                    <div class="modal fade" id="cancelInterviewModal" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Cancel Interview</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p>Are you sure you want to cancel this interview?</p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <form method="POST" action="{% url 'manage_interview' interview.id %}">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="action" value="cancel">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep It</button>
-                                                        <button type="submit" class="btn btn-danger">Yes, Cancel It</button>
-                                                    </form>
-                    </div>
-                            </div>
-                        </div>
-                    </div>
-
-                                    <!-- Complete Interview Modal -->
-                                    <div class="modal fade" id="completeInterviewModal" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Mark Interview as Completed</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p>Are you sure you want to mark this interview as completed?</p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <form method="POST" action="{% url 'manage_interview' interview.id %}">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="action" value="complete">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Not Yet</button>
-                                                        <button type="submit" class="btn btn-success">Yes, Mark as Completed</button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Application Details</h4>
+                        {% if application.applicant.jobseekerprofile.is_premium %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-crown me-1"></i>Premium Applicant
+                        </span>
                         {% endif %}
                     </div>
-                    {% endif %}
-                    {% endwith %}
+                </div>
+                <div class="card-body">
+                    <!-- Job Information -->
+                    <div class="mb-4">
+                        <h5 class="card-title">
+                            <i class="fas fa-briefcase me-2"></i>Job Information
+                        </h5>
+                        <p><strong>Position:</strong> {{ application.job.title }}</p>
+                        <p><strong>Company:</strong> {{ application.job.company.company_name }}</p>
+                        <p><strong>Applied On:</strong> {{ application.applied_at|date:"F d, Y" }}</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge {% if application.status == 'Accepted' %}bg-success{% elif application.status == 'Rejected' %}bg-danger{% else %}bg-info{% endif %}">
+                                {{ application.status }}
+                            </span>
+                        </p>
+                    </div>
 
-                    <!-- Application Actions (Employer Only) -->
-                    {% if application.job.company.user == request.user %}
-                        <div class="mt-4">
-                            <h5 class="mb-3">Application Actions</h5>
-                            <div class="btn-group">
-                                {% if application.status == 'Pending' %}
-                                    <button type="button" 
-                                            class="btn btn-success" 
-                                            onclick="updateStatus('Accepted')">
-                                        <i class="fas fa-check me-2"></i>Accept
-                                    </button>
-                                    <button type="button" 
-                                            class="btn btn-danger" 
-                                            onclick="updateStatus('Rejected')">
-                                        <i class="fas fa-times me-2"></i>Reject
-                                    </button>
-                                {% elif application.status == 'Accepted' and not application.interviews.exists %}
-                                    <a href="{% url 'schedule_interview' application.id %}" class="btn btn-primary">
-                                        <i class="fas fa-calendar-alt me-2"></i>Schedule Interview
-                                    </a>
+                    <!-- Applicant Information -->
+                    <div class="mb-4">
+                        <h5 class="card-title">
+                            <i class="fas fa-user me-2"></i>Applicant Information
+                        </h5>
+                        <p><strong>Name:</strong> {{ application.applicant.get_full_name }}</p>
+                        <p><strong>Email:</strong> {{ application.applicant.email }}</p>
+                        {% if application.applicant.jobseekerprofile.phone_number %}
+                        <p><strong>Phone:</strong> {{ application.applicant.jobseekerprofile.phone_number }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Cover Letter -->
+                    {% if application.cover_letter %}
+                    <div class="mb-4">
+                        <h5 class="card-title">
+                            <i class="fas fa-envelope me-2"></i>Cover Letter
+                        </h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                {{ application.cover_letter|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Resume -->
+                    {% if application.resume %}
+                    <div class="mb-4">
+                        <h5 class="card-title">
+                            <i class="fas fa-file-alt me-2"></i>Resume
+                        </h5>
+                        <a href="{{ application.resume.url }}" class="btn btn-outline-primary" target="_blank">
+                            <i class="fas fa-download me-2"></i>Download Resume
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Interview Section (if any) -->
+                    {% if application.interviews.exists %}
+                    <div class="mb-4">
+                        <h5 class="card-title">
+                            <i class="fas fa-calendar-alt me-2"></i>Interview Details
+                        </h5>
+                        {% for interview in application.interviews.all %}
+                        <div class="card mb-3 {% if interview.status == 'scheduled' %}border-primary{% elif interview.status == 'completed' %}border-success{% elif interview.status == 'cancelled' %}border-danger{% endif %}">
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    {{ interview.get_interview_type_display }}
+                                </h6>
+                                <p class="mb-2">
+                                    <strong>Date & Time:</strong> {{ interview.scheduled_date|date:"F d, Y P" }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Duration:</strong> {{ interview.duration }} minutes
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Status:</strong> 
+                                    <span class="badge {% if interview.status == 'scheduled' %}bg-primary{% elif interview.status == 'completed' %}bg-success{% elif interview.status == 'cancelled' %}bg-danger{% endif %}">
+                                        {{ interview.get_status_display }}
+                                    </span>
+                                </p>
+                                {% if interview.location_or_link %}
+                                <p class="mb-2">
+                                    <strong>{% if interview.interview_type == 'online' %}Link{% else %}Location{% endif %}:</strong>
+                                    {% if interview.interview_type == 'online' %}
+                                    <a href="{{ interview.location_or_link }}" target="_blank">Join Interview</a>
+                                    {% else %}
+                                    {{ interview.location_or_link }}
+                                    {% endif %}
+                                </p>
+                                {% endif %}
+                                {% if interview.notes %}
+                                <p class="mb-0">
+                                    <strong>Notes:</strong> {{ interview.notes }}
+                                </p>
                                 {% endif %}
                             </div>
                         </div>
+                        {% endfor %}
+                    </div>
                     {% endif %}
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'job_detail' application.job.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Job
+                        </a>
+                        {% if user == application.job.company.user %}
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleInterviewModal">
+                                <i class="fas fa-calendar-plus me-2"></i>Schedule Interview
+                            </button>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
+                                <i class="fas fa-check-circle me-2"></i>Update Status
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Interview Scheduling Modal -->
+{% if user == application.job.company.user %}
+<div class="modal fade" id="scheduleInterviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule Interview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'schedule_interview' application.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Interview Date & Time</label>
+                        <input type="datetime-local" name="scheduled_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Duration (minutes)</label>
+                        <input type="number" name="duration" class="form-control" value="60" min="15" step="15" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Interview Type</label>
+                        <select name="interview_type" class="form-select" required>
+                            <option value="online">Online</option>
+                            <option value="in_person">In Person</option>
+                            <option value="phone">Phone</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location/Link</label>
+                        <input type="text" name="location_or_link" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Application Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">New Status</label>
+                    <select id="statusSelect" class="form-select">
+                        <option value="Pending">Pending</option>
+                        <option value="Reviewed">Reviewed</option>
+                        <option value="Shortlisted">Shortlisted</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="updateApplicationStatus()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% block extra_js %}
 <script>
-function updateStatus(newStatus) {
-    if (confirm(`Are you sure you want to ${newStatus.toLowerCase()} this application?`)) {
-        fetch(`{% url 'update_application_status' application.id %}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ status: newStatus })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                window.location.reload();
-            } else {
-                alert('Failed to update application status. Please try again.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred. Please try again.');
-        });
-    }
+function updateApplicationStatus() {
+    const status = document.getElementById('statusSelect').value;
+    const applicationId = '{{ application.id }}';
+    
+    fetch(`/update-application-status/${applicationId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('Error updating status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating status');
+    });
 }
 </script>
 {% endblock %}

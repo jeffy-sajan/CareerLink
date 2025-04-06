@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Complete Subscription{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Complete Your Subscription</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h5>{{ plan.name }}</h5>
+                        <h2 class="text-primary">₹{{ plan.price }}</h2>
+                        <p class="text-muted">per year</p>
+                    </div>
+
+                    <form action="{% url 'subscription_success' %}" method="POST" id="subscription-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
+                        <input type="hidden" name="razorpay_order_id" id="razorpay_order_id">
+                        <input type="hidden" name="razorpay_signature" id="razorpay_signature">
+                        
+                        <button id="rzp-button" type="button" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-lock me-2"></i>Pay Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.getElementById('rzp-button').onclick = function(e) {
+    var options = {
+        "key": "{{ key_id }}",
+        "amount": "{{ order.amount }}", // Amount is already in paise
+        "currency": "{{ order.currency }}",
+        "name": "CareerLink Premium",
+        "description": "{{ plan.name }}",
+        "order_id": "{{ order.id }}",
+        "handler": function (response) {
+            document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+            document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
+            document.getElementById('razorpay_signature').value = response.razorpay_signature;
+            document.getElementById('subscription-form').submit();
+        },
+        "modal": {
+            "ondismiss": function() {
+                window.location.href = "{% url 'subscription_plans' %}";
+            }
+        },
+        "prefill": {
+            "name": "{{ request.user.get_full_name }}",
+            "email": "{{ request.user.email }}",
+            "contact": "{{ request.user.jobseekerprofile.phone|default:'' }}{{ request.user.employerprofile.phone|default:'' }}"
+        },
+        "theme": {
+            "color": "#0d6efd"
+        }
+    };
+    var rzp = new Razorpay(options);
+    rzp.open();
+    e.preventDefault();
+}
+</script>
+{% endblock %} 

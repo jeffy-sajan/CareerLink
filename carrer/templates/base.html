@@ -1,4 +1,5 @@
 {% load custom_filters %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -107,7 +108,43 @@
             color: #ccc;
             margin-top: 20px;
         }
+        .premium-badge {
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 1.2em;
+            vertical-align: middle;
+        }
+        .notification-badge {
+            background-color: #ff4444;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+        }
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navbar -->
@@ -149,14 +186,23 @@
                                         <i class="fas fa-bell"></i>
                                         {% with unread_count=user|unread_notifications_count %}
                                             {% if unread_count > 0 %}
-                                                <span class="badge bg-danger">{{ unread_count }}</span>
+                                                <span class="notification-badge">{{ unread_count }}</span>
                                             {% endif %}
                                         {% endwith %}
                                     </a>
                                 </li>
+                                {% if not user.jobseekerprofile.is_premium %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'subscription_plans' %}">Get Premium</a>
+                                </li>
+                                {% endif %}
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="jobSeekerDropdown" role="button" data-bs-toggle="dropdown">
                                         <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+                                        {% if user.jobseekerprofile.is_premium %}
+                                        <span class="premium-badge" title="Premium Member">
+                                            <i class="fa-solid fa-crown fa-2xs"></i></span>
+                                        {% endif %}
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li><a class="dropdown-item" href="{% url 'job_seeker_dashboard' %}">Dashboard</a></li>
@@ -179,7 +225,7 @@
                                         <i class="fas fa-bell"></i>
                                         {% with unread_count=user|unread_notifications_count %}
                                             {% if unread_count > 0 %}
-                                                <span class="badge bg-danger">{{ unread_count }}</span>
+                                                <span class="notification-badge">{{ unread_count }}</span>
                                             {% endif %}
                                         {% endwith %}
                                     </a>
@@ -189,9 +235,19 @@
                                         <i class="fas fa-plus"></i> Post Job
                                     </a>
                                 </li>
+                                {% if not user.employerprofile.is_premium %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'subscription_plans' %}">Premium</a>
+                                </li>
+                                {% endif %}
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="employerDropdown" role="button" data-bs-toggle="dropdown">
                                         <span class="company-name">{{ user.employerprofile.company_name }}</span>
+                                        {% if user.employerprofile.is_premium %}
+                                        <span class="premium-badge" title="Premium Member">
+                                            <i class="fa-solid fa-crown fa-2xs"></i>
+                                        </span>
+                                        {% endif %}
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li><a class="dropdown-item" href="{% url 'edit_company_profile' user.employerprofile.id %}">
@@ -216,11 +272,22 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'login' %}">Login</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'job_seeker_register' %}">Register as Job Seeker</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'employer_register' %}">Register as Employer</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown">
+                                Register
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'job_seeker_register' %}">
+                                        <i class="fas fa-user-graduate me-2"></i>Register as Job Seeker
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'employer_register' %}">
+                                        <i class="fas fa-building me-2"></i>Register as Employer
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                     {% endif %}
                 </ul>
