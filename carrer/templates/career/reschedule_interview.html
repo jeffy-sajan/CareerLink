@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Reschedule Interview</h4>
+                        <a href="{% url 'view_application' interview.application.id %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Application
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Current Interview Details</h5>
+                        <p><strong>Applicant:</strong> {{ interview.application.applicant.get_full_name }}</p>
+                        <p><strong>Position:</strong> {{ interview.application.job.title }}</p>
+                        <p><strong>Current Date & Time:</strong> {{ interview.scheduled_date|date:"F j, Y, g:i a" }}</p>
+                        <p><strong>Type:</strong> {{ interview.get_interview_type_display }}</p>
+                        <p><strong>Location/Link:</strong> {{ interview.location_or_link }}</p>
+                    </div>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reschedule">
+                        
+                        <div class="mb-3">
+                            <label for="scheduled_date" class="form-label">New Interview Date & Time</label>
+                            <input type="datetime-local" 
+                                   class="form-control" 
+                                   id="scheduled_date" 
+                                   name="scheduled_date" 
+                                   value="{{ interview.scheduled_date|date:'Y-m-d\TH:i' }}"
+                                   required>
+                            <div class="form-text">Please select a new date and time that works for both parties.</div>
+                            <div class="invalid-feedback">
+                                Please select a date and time for the interview.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="duration" class="form-label">Duration (minutes)</label>
+                            <select class="form-select" id="duration" name="duration" required>
+                                <option value="30" {% if interview.duration == 30 %}selected{% endif %}>30 minutes</option>
+                                <option value="60" {% if interview.duration == 60 %}selected{% endif %}>1 hour</option>
+                                <option value="90" {% if interview.duration == 90 %}selected{% endif %}>1.5 hours</option>
+                                <option value="120" {% if interview.duration == 120 %}selected{% endif %}>2 hours</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="interview_type" class="form-label">Interview Type</label>
+                            <select class="form-select" id="interview_type" name="interview_type" required>
+                                <option value="online" {% if interview.interview_type == 'online' %}selected{% endif %}>Online (Video Call)</option>
+                                <option value="in_person" {% if interview.interview_type == 'in_person' %}selected{% endif %}>In Person</option>
+                                <option value="phone" {% if interview.interview_type == 'phone' %}selected{% endif %}>Phone Call</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location_or_link" class="form-label">Location or Meeting Link</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="location_or_link" 
+                                   name="location_or_link" 
+                                   value="{{ interview.location_or_link }}"
+                                   required>
+                            <div class="form-text">Enter physical address for in-person interviews or meeting link for online interviews.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ interview.notes }}</textarea>
+                            <div class="form-text">Add any specific instructions or topics to be covered during the interview.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Reschedule Interview</button>
+                            <a href="{% url 'view_application' interview.application.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+
+// Set minimum date to today
+document.getElementById('scheduled_date').min = new Date().toISOString().slice(0, 16)
+</script>
+{% endblock %}
+{% endblock %} 

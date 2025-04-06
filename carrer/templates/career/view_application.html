@@ -4,174 +4,231 @@
 {% block content %}
 <div class="container py-5">
     <div class="row">
-        <!-- Application Details -->
-        <div class="col-md-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Application Details</h5>
-                        {% if application.job.company.user == request.user %}
-                            <a href="{% url 'employer_applications' %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-arrow-left me-1"></i>Back to Applications
-                            </a>
-                        {% else %}
-                            <a href="{% url 'applied_jobs' %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-arrow-left me-1"></i>Back to My Applications
-                            </a>
-                        {% endif %}
-                    </div>
+        <div class="col-md-10 mx-auto">
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary fw-bold">Application Details</h2>
+                {% if application.job.company.user == request.user %}
+                    <a href="{% url 'employer_applications' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Applications
+                    </a>
+                {% else %}
+                    <a href="{% url 'applied_jobs' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to My Applications
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Main Card -->
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-4">
+                    <!-- Job Information Section -->
+                    <div class="mb-5">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="flex-shrink-0">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                                    <i class="fas fa-briefcase fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h4 class="mb-1">{{ application.job.title }}</h4>
+                                <p class="text-muted mb-0">{{ application.job.company.company_name }}</p>
                 </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <h6>Job Position</h6>
-                        <p class="mb-1"><strong>{{ application.job.title }}</strong></p>
-                        <p class="text-muted mb-0">Applied on {{ application.applied_at|date:"F d, Y" }}</p>
-                    </div>
-
-                    <div class="mb-4">
-                        <h6>Application Status</h6>
-                        <span class="badge bg-{{ application.status|lower }} mb-3">{{ application.status }}</span>
-                        {% if application.status == 'Pending' and application.job.company.user == request.user %}
-                            <div class="btn-group d-block">
-                                <button type="button" 
-                                        class="btn btn-info me-2"
-                                        onclick="updateStatus({{ application.id }}, 'Accepted')">
-                                    <i class="fas fa-check me-1"></i>Accept Application
-                                </button>
-                                <button type="button" 
-                                        class="btn btn-danger"
-                                        onclick="updateStatus({{ application.id }}, 'Rejected')">
-                                    <i class="fas fa-times me-1"></i>Reject Application
-                                </button>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-4">
-                        <h6>Cover Letter</h6>
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                {{ application.cover_letter|linebreaks }}
+                            <div class="text-end">
+                                <span class="badge {% if application.status == 'Accepted' %}bg-success
+                                                  {% elif application.status == 'Rejected' %}bg-danger
+                                                  {% elif application.status == 'Reviewed' %}bg-info
+                                                  {% else %}bg-warning{% endif %} fs-6">
+                                    {{ application.status }}
+                                </span>
+                                <p class="text-muted mt-2 mb-0">Applied on {{ application.applied_at|date:"F d, Y" }}</p>
                             </div>
                         </div>
                     </div>
 
-                    {% if application.notes %}
-                    <div class="mb-4">
-                        <h6>Additional Notes</h6>
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                {{ application.notes|linebreaks }}
+                    <!-- Cover Letter Section -->
+                    <div class="mb-5">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                <i class="fas fa-file-alt text-primary"></i>
                             </div>
-                        </div>
+                            <h5 class="mb-0">Cover Letter</h5>
                     </div>
-                    {% endif %}
-
-                    {% if application.expected_salary %}
-                    <div class="mb-4">
-                        <h6>Expected Salary</h6>
-                        <p>₹{{ application.expected_salary|floatformat:2 }}</p>
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <div class="p-3">
+                                    {{ application.cover_letter|linebreaks }}
                     </div>
-                    {% endif %}
-
-                    {% if application.job.salary_range %}
-                    <div class="mb-4">
-                        <h6>Job Salary Range</h6>
-                        <p>{{ application.job.salary_range|default:"Not specified" }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.availability_date %}
-                    <div class="mb-4">
-                        <h6>Availability Date</h6>
-                        <p>{{ application.availability_date|date:"F d, Y" }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.resume %}
-                    <div class="mb-4">
-                        <h6>Resume</h6>
-                        <a href="{{ application.resume.url }}" class="btn btn-primary" download>
-                            <i class="fas fa-download me-1"></i>Download Resume
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Applicant Details -->
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Applicant Details</h5>
-                </div>
-                <div class="card-body">
-                    <div class="text-center mb-4">
-                        {% if application.applicant.jobseekerprofile.profile_picture %}
-                            <img src="{{ application.applicant.jobseekerprofile.profile_picture.url }}" 
-                                 alt="Profile Picture" 
-                                 class="rounded-circle mb-3"
-                                 style="width: 120px; height: 120px; object-fit: cover;">
-                        {% else %}
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3"
-                                 style="width: 120px; height: 120px; font-size: 48px;">
-                                {{ application.applicant.get_full_name|first|upper }}
+                    <!-- Resume Section -->
+                    {% if application.resume %}
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="fas fa-file-pdf text-primary"></i>
+                                </div>
+                                <h5 class="mb-0">Resume</h5>
                             </div>
-                        {% endif %}
-                        <h5>{{ application.applicant.get_full_name }}</h5>
-                        <p class="text-muted">{{ application.applicant.email }}</p>
-                    </div>
-
-                    {% if application.applicant.jobseekerprofile.phone %}
-                    <div class="mb-3">
-                        <h6>Phone</h6>
-                        <p>{{ application.applicant.jobseekerprofile.phone }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.applicant.jobseekerprofile.location %}
-                    <div class="mb-3">
-                        <h6>Location</h6>
-                        <p>{{ application.applicant.jobseekerprofile.location }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.applicant.jobseekerprofile.expected_salary %}
-                    <div class="mb-3">
-                        <h6>Expected Salary</h6>
-                        <p>₹{{ application.applicant.jobseekerprofile.expected_salary|floatformat:2 }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.applicant.jobseekerprofile.skills %}
-                    <div class="mb-3">
-                        <h6>Skills</h6>
-                        <p>{{ application.applicant.jobseekerprofile.skills }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.applicant.jobseekerprofile.experience %}
-                    <div class="mb-3">
-                        <h6>Experience</h6>
-                        <p>{{ application.applicant.jobseekerprofile.experience }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.applicant.jobseekerprofile.education %}
-                    <div class="mb-3">
-                        <h6>Education</h6>
-                        <p>{{ application.applicant.jobseekerprofile.education }}</p>
-                    </div>
-                    {% endif %}
-
-                    {% if application.applicant.jobseekerprofile.linkedin %}
-                    <div class="mb-3">
-                        <h6>LinkedIn</h6>
-                        <a href="{{ application.applicant.jobseekerprofile.linkedin }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                            <i class="fab fa-linkedin me-1"></i>View Profile
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <div class="p-3">
+                                        <a href="{{ application.resume.url }}" class="btn btn-primary" download>
+                                            <i class="fas fa-download me-2"></i>Download Resume
                         </a>
                     </div>
+                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Interview Information -->
+                    {% with interview=application.interviews.first %}
+                    {% if interview %}
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="fas fa-calendar-check text-primary"></i>
+                                </div>
+                                <h5 class="mb-0">Interview Details</h5>
+                            </div>
+                            <div class="card bg-light border-0">
+                <div class="card-body">
+                                    <div class="p-3">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <p class="mb-1 text-muted">Date & Time</p>
+                                                <p class="mb-0 fw-bold">{{ interview.scheduled_date|date:"F d, Y, g:i A" }}</p>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <p class="mb-1 text-muted">Duration</p>
+                                                <p class="mb-0 fw-bold">{{ interview.duration }} minutes</p>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <p class="mb-1 text-muted">Type</p>
+                                                <p class="mb-0 fw-bold">{{ interview.get_interview_type_display }}</p>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <p class="mb-1 text-muted">Location/Link</p>
+                                                <p class="mb-0 fw-bold">{{ interview.location_or_link }}</p>
+                                            </div>
+                                            {% if interview.notes %}
+                                                <div class="col-12 mb-3">
+                                                    <p class="mb-1 text-muted">Notes</p>
+                                                    <p class="mb-0 fw-bold">{{ interview.notes }}</p>
+                                                </div>
+                                            {% endif %}
+                                            <div class="col-12">
+                                                <p class="mb-1 text-muted">Status</p>
+                                                <span class="badge {% if interview.status == 'scheduled' %}bg-primary
+                                                                  {% elif interview.status == 'completed' %}bg-success
+                                                                  {% elif interview.status == 'cancelled' %}bg-danger
+                                                                  {% else %}bg-warning{% endif %} fs-6">
+                                                    {{ interview.get_status_display }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                    </div>
+
+                            <!-- Interview Actions (Employer Only) -->
+                            {% if application.job.company.user == request.user and interview.status == 'scheduled' %}
+                                <div class="mt-4">
+                                    <div class="btn-group">
+                                        <a href="{% url 'manage_interview' interview.id %}" class="btn btn-warning">
+                                            <i class="fas fa-calendar-alt me-2"></i>Reschedule
+                                        </a>
+                                <button type="button" 
+                                                class="btn btn-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#cancelInterviewModal">
+                                            <i class="fas fa-times me-2"></i>Cancel
+                                </button>
+                                <button type="button" 
+                                                class="btn btn-success" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#completeInterviewModal">
+                                            <i class="fas fa-check me-2"></i>Mark as Completed
+                                </button>
+                            </div>
+                                    
+                                    <!-- Cancel Interview Modal -->
+                                    <div class="modal fade" id="cancelInterviewModal" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Cancel Interview</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Are you sure you want to cancel this interview?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form method="POST" action="{% url 'manage_interview' interview.id %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="cancel">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep It</button>
+                                                        <button type="submit" class="btn btn-danger">Yes, Cancel It</button>
+                                                    </form>
+                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                                    <!-- Complete Interview Modal -->
+                                    <div class="modal fade" id="completeInterviewModal" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Mark Interview as Completed</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Are you sure you want to mark this interview as completed?</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <form method="POST" action="{% url 'manage_interview' interview.id %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="complete">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Not Yet</button>
+                                                        <button type="submit" class="btn btn-success">Yes, Mark as Completed</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+
+                    <!-- Application Actions (Employer Only) -->
+                    {% if application.job.company.user == request.user %}
+                        <div class="mt-4">
+                            <h5 class="mb-3">Application Actions</h5>
+                            <div class="btn-group">
+                                {% if application.status == 'Pending' %}
+                                    <button type="button" 
+                                            class="btn btn-success" 
+                                            onclick="updateStatus('Accepted')">
+                                        <i class="fas fa-check me-2"></i>Accept
+                                    </button>
+                                    <button type="button" 
+                                            class="btn btn-danger" 
+                                            onclick="updateStatus('Rejected')">
+                                        <i class="fas fa-times me-2"></i>Reject
+                                    </button>
+                                {% elif application.status == 'Accepted' and not application.interviews.exists %}
+                                    <a href="{% url 'schedule_interview' application.id %}" class="btn btn-primary">
+                                        <i class="fas fa-calendar-alt me-2"></i>Schedule Interview
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -179,45 +236,32 @@
     </div>
 </div>
 
+{% block extra_js %}
 <script>
-function updateStatus(applicationId, status) {
-    if (confirm('Are you sure you want to ' + status.toLowerCase() + ' this application?')) {
-        fetch(`/employer/applications/${applicationId}/update-status/`, {
+function updateStatus(newStatus) {
+    if (confirm(`Are you sure you want to ${newStatus.toLowerCase()} this application?`)) {
+        fetch(`{% url 'update_application_status' application.id %}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({ status: status })
+            body: JSON.stringify({ status: newStatus })
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                location.reload();
+                window.location.reload();
             } else {
                 alert('Failed to update application status. Please try again.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while updating the status.');
+            alert('An error occurred. Please try again.');
         });
     }
 }
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
 </script>
+{% endblock %}
 {% endblock %} 

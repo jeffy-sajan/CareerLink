@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Application Tracking - CareerLink{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">My Applications</h4>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                Filter by Status
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?status=all">All Applications</a></li>
+                                <li><a class="dropdown-item" href="?status=pending">Pending</a></li>
+                                <li><a class="dropdown-item" href="?status=reviewed">Under Review</a></li>
+                                <li><a class="dropdown-item" href="?status=interview">Interview</a></li>
+                                <li><a class="dropdown-item" href="?status=accepted">Accepted</a></li>
+                                <li><a class="dropdown-item" href="?status=rejected">Rejected</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if applications %}
+                        <div class="list-group">
+                            {% for application in applications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-1">{{ application.job.title }}</h5>
+                                            <p class="mb-1 text-muted">{{ application.job.company.company_name }}</p>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge {% if application.status == 'Accepted' %}bg-success
+                                                             {% elif application.status == 'Rejected' %}bg-danger
+                                                             {% elif application.status == 'Interview' %}bg-info
+                                                             {% elif application.status == 'Shortlisted' %}bg-warning
+                                                             {% elif application.status == 'Reviewed' %}bg-primary
+                                                             {% else %}bg-secondary{% endif %}">
+                                                {{ application.status }}
+                                            </span>
+                                            <small class="d-block text-muted">Applied {{ application.applied_at|timesince }} ago</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="progress mb-2" style="height: 5px;">
+                                            <div class="progress-bar {% if application.status == 'Accepted' %}bg-success
+                                                                   {% elif application.status == 'Rejected' %}bg-danger
+                                                                   {% elif application.status == 'Interview' %}bg-info
+                                                                   {% elif application.status == 'Shortlisted' %}bg-warning
+                                                                   {% elif application.status == 'Reviewed' %}bg-primary
+                                                                   {% else %}bg-secondary{% endif %}"
+                                                 role="progressbar" 
+                                                 style="width: {% if application.status == 'Accepted' %}100%
+                                                           {% elif application.status == 'Rejected' %}100%
+                                                           {% elif application.status == 'Interview' %}75%
+                                                           {% elif application.status == 'Shortlisted' %}50%
+                                                           {% elif application.status == 'Reviewed' %}25%
+                                                           {% else %}0%{% endif %};">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between small text-muted">
+                                            <span>Applied</span>
+                                            <span>Under Review</span>
+                                            <span>Shortlisted</span>
+                                            <span>Interview</span>
+                                            <span>Final Decision</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Application Details</h6>
+                                                <ul class="list-unstyled">
+                                                    <li><strong>Applied Date:</strong> {{ application.applied_at|date:"F d, Y" }}</li>
+                                                    <li><strong>Expected Salary:</strong> ₹{{ application.expected_salary|floatformat:2 }}</li>
+                                                    <li><strong>Availability:</strong> {{ application.availability_date|date:"F d, Y" }}</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Job Details</h6>
+                                                <ul class="list-unstyled">
+                                                    <li><strong>Location:</strong> {{ application.job.location }}</li>
+                                                    <li><strong>Job Type:</strong> {{ application.job.get_job_type_display }}</li>
+                                                    <li><strong>Experience:</strong> {{ application.job.get_experience_level_display }}</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {% with interview=application.interviews.first %}
+                                    {% if interview %}
+                                        <div class="mt-3">
+                                            <h6>Interview Details</h6>
+                                            <div class="alert alert-info">
+                                                <p class="mb-1"><strong>Date:</strong> {{ interview.scheduled_date|date:"F d, Y" }}</p>
+                                                <p class="mb-1"><strong>Time:</strong> {{ interview.scheduled_date|time:"g:i A" }}</p>
+                                                <p class="mb-1"><strong>Type:</strong> {{ interview.get_interview_type_display }}</p>
+                                                <p class="mb-1"><strong>Location/Link:</strong> {{ interview.location_or_link }}</p>
+                                                {% if interview.notes %}
+                                                    <p class="mb-0"><strong>Notes:</strong> {{ interview.notes }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    {% endwith %}
+
+                                    <div class="mt-3">
+                                        <a href="{% url 'view_my_application' application.id %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View Details
+                                        </a>
+                                        {% if application.status == 'Accepted' %}
+                                            <a href="{% url 'company_profile' application.job.company.id %}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-building me-1"></i>View Company
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h5>No Applications Found</h5>
+                            <p class="text-muted">You haven't applied for any jobs yet.</p>
+                            <a href="{% url 'job_search' %}" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Search Jobs
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

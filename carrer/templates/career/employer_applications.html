@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Job Applications - CareerLink{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Job Applications</h4>
+                        <div class="d-flex gap-2">
+                            <!-- Search Form -->
+                            <form class="d-flex" method="get" action="{% url 'employer_applications' %}">
+                                <input type="text" 
+                                       name="search" 
+                                       class="form-control me-2" 
+                                       placeholder="Search applicants..." 
+                                       value="{{ search_query }}"
+                                       style="min-width: 200px;">
+                                <button type="submit" class="btn btn-light">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </form>
+                            
+                            <!-- Filters Dropdown -->
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-filter"></i> Filters
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 300px;">
+                                    <form method="get" action="{% url 'employer_applications' %}">
+                                        {% if search_query %}
+                                            <input type="hidden" name="search" value="{{ search_query }}">
+                                        {% endif %}
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Status</label>
+                                            <select name="status" class="form-select">
+                                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                                                <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                                                <option value="Reviewed" {% if status_filter == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+                                                <option value="Accepted" {% if status_filter == 'Accepted' %}selected{% endif %}>Accepted</option>
+                                                <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Job</label>
+                                            <select name="job" class="form-select">
+                                                <option value="all" {% if job_filter == 'all' %}selected{% endif %}>All Jobs</option>
+                                                {% for job in active_jobs %}
+                                                    <option value="{{ job.id }}" {% if job_filter == job.id|stringformat:"i" %}selected{% endif %}>
+                                                        {{ job.title }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if applications %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Applicant</th>
+                                        <th>Job Title</th>
+                                        <th>Applied On</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for application in applications %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if application.applicant.jobseekerprofile.profile_picture %}
+                                                        <img src="{{ application.applicant.jobseekerprofile.profile_picture.url }}" 
+                                                             class="rounded-circle me-2" 
+                                                             width="40" 
+                                                             height="40" 
+                                                             alt="{{ application.applicant.get_full_name }}">
+                                                    {% else %}
+                                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" 
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="fas fa-user"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <div class="fw-bold">{{ application.applicant.get_full_name }}</div>
+                                                        <small class="text-muted">{{ application.applicant.email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{{ application.job.title }}</td>
+                                            <td>{{ application.applied_at|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge {% if application.status == 'Accepted' %}bg-success
+                                                                  {% elif application.status == 'Rejected' %}bg-danger
+                                                                  {% elif application.status == 'Reviewed' %}bg-info
+                                                                  {% else %}bg-warning{% endif %}">
+                                                    {{ application.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{% url 'view_application' application.id %}" 
+                                                       class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    {% if application.status == 'Pending' %}
+                                                        <a href="{% url 'schedule_interview' application.id %}" 
+                                                           class="btn btn-sm btn-success">
+                                                            <i class="fas fa-calendar-alt"></i> Schedule
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h5>No Applications Found</h5>
+                            <p class="text-muted">
+                                {% if search_query or status_filter != 'all' or job_filter != 'all' %}
+                                    No applications match your current filters.
+                                {% else %}
+                                    You don't have any job applications yet.
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

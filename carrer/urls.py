@@ -29,7 +29,7 @@ from .views import (
     # Interview Management
     schedule_interview, manage_interview, submit_interview_feedback,
     # Notifications
-    get_notifications
+    get_notifications, delete_notification, delete_all_notifications
 )
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -88,7 +88,7 @@ urlpatterns = [
     path('job/search/', job_search, name='job_search'),
     path('employer/post-job/', post_job, name='post_job'),
     path('employer/job/<int:job_id>/edit/', edit_job, name='edit_job'),
-    path('employer/job/<int:job_id>/delete/', delete_job, name='delete_job'),
+    path('job/<int:job_id>/delete/', delete_job, name='delete_job'),
 
     # Company Management
     path('company/<int:company_id>/', company_profile, name='company_profile'),
@@ -143,4 +143,6 @@ urlpatterns = [
 
     # Notifications
     path('notifications/', get_notifications, name='notifications'),
+    path('notifications/<int:notification_id>/delete/', delete_notification, name='delete_notification'),
+    path('notifications/delete-all/', delete_all_notifications, name='delete_all_notifications'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

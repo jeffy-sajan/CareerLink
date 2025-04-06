@@ -169,6 +169,26 @@
                                 </li>
                             {% elif user|has_attr:'employerprofile' %}
                                 <!-- Employer Navigation -->
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'employer_dashboard' %}">
+                                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'notifications' %}">
+                                        <i class="fas fa-bell"></i>
+                                        {% with unread_count=user|unread_notifications_count %}
+                                            {% if unread_count > 0 %}
+                                                <span class="badge bg-danger">{{ unread_count }}</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'post_job' %}">
+                                        <i class="fas fa-plus"></i> Post Job
+                                    </a>
+                                </li>
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="employerDropdown" role="button" data-bs-toggle="dropdown">
                                         <span class="company-name">{{ user.employerprofile.company_name }}</span>

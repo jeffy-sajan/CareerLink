@@ -393,6 +393,15 @@ def apply_for_job(request, job_id):
             application.job = job
             application.applicant = request.user
             application.save()
+            
+            # Create notification for the recruiter
+            Notification.objects.create(
+                user=job.company.user,  # The recruiter
+                notification_type='application_status',
+                title='New Job Application',
+                message=f'A new application has been submitted for the job "{job.title}" by {request.user.get_full_name()}.'
+            )
+            
             messages.success(request, "Application submitted successfully!")
             return redirect('job_detail', job_id=job.id)
     else:
@@ -401,8 +410,40 @@ def apply_for_job(request, job_id):
 
 @login_required
 def applied_jobs(request):
-    applications = JobApplication.objects.filter(applicant=request.user).select_related('job')
-    return render(request, 'career/applied_jobs.html', {'applications': applications})
+    # Get filter status from query parameters
+    status_filter = request.GET.get('status', 'all')
+    
+    # Base queryset
+    applications = JobApplication.objects.filter(
+        applicant=request.user
+    ).select_related(
+        'job',
+        'job__company'
+    ).prefetch_related(
+        'interviews'
+    ).order_by('-applied_at')
+    
+    # Apply status filter if not 'all'
+    if status_filter != 'all':
+        applications = applications.filter(status=status_filter)
+    
+    # Get application statistics
+    total_applications = applications.count()
+    status_counts = {
+        'pending': applications.filter(status='Pending').count(),
+        'reviewed': applications.filter(status='Reviewed').count(),
+        'shortlisted': applications.filter(status='Shortlisted').count(),
+        'interview': applications.filter(status='Interview').count(),
+        'accepted': applications.filter(status='Accepted').count(),
+        'rejected': applications.filter(status='Rejected').count()
+    }
+    
+    return render(request, 'career/application_tracking.html', {
+        'applications': applications,
+        'status_filter': status_filter,
+        'total_applications': total_applications,
+        'status_counts': status_counts
+    })
 
 # Job Search
 def job_search(request):
@@ -452,10 +493,41 @@ def job_search(request):
 def manage_jobs(request):
     return render(request, "career/manage_jobs.html", {"jobs": Job.objects.all()})
 
-@staff_member_required
+@login_required
 def delete_job(request, job_id):
-    get_object_or_404(Job, id=job_id).delete()
-    return redirect("manage_jobs")
+    job = get_object_or_404(Job, id=job_id)
+    
+    # Check if the user is the owner of the job
+    if job.company.user != request.user:
+        messages.error(request, "You don't have permission to delete this job.")
+        return redirect('job_detail', job_id=job_id)
+    
+    # Get all affected users before deletion
+    applicants = User.objects.filter(applications__job=job)
+    saved_by_users = User.objects.filter(saved_jobs__job=job)
+    
+    # Delete the job (this will cascade delete related records)
+    job.delete()
+    
+    # Create notifications for affected users
+    for user in applicants:
+        Notification.objects.create(
+            user=user,
+            notification_type='job_deleted',
+            title='Job Deleted',
+            message=f'The job "{job.title}" you applied for has been deleted by the employer.'
+        )
+    
+    for user in saved_by_users:
+        Notification.objects.create(
+            user=user,
+            notification_type='job_deleted',
+            title='Job Deleted',
+            message=f'The job "{job.title}" you saved has been deleted by the employer.'
+        )
+    
+    messages.success(request, "Job has been deleted successfully.")
+    return redirect('employer_dashboard')
 
 @staff_member_required
 def manage_applications(request):
@@ -494,7 +566,10 @@ def contact(request):
 
 # Job Management
 def job_list(request):
-    jobs = Job.objects.filter(is_active=True).select_related('company')
+    jobs = Job.objects.filter(
+        deadline__gte=timezone.now().date()
+    ).select_related('company').order_by('-created_at')
+    
     paginator = Paginator(jobs, 10)
     page = request.GET.get('page')
     jobs = paginator.get_page(page)
@@ -571,17 +646,52 @@ def edit_company_profile(request, company_id):
 # Job Applications
 @login_required
 def employer_applications(request):
-    employer_profile = get_object_or_404(EmployerProfile, user=request.user)
+    if not hasattr(request.user, 'employerprofile'):
+        messages.error(request, 'You must be an employer to view applications.')
+        return redirect('home')
+    
+    # Get search query from request
+    search_query = request.GET.get('search', '')
+    
+    # Base queryset for applications to the employer's jobs
     applications = JobApplication.objects.filter(
-        job__company=employer_profile
-    ).select_related('job', 'applicant').order_by('-applied_at')
+        job__company__user=request.user
+    ).select_related(
+        'job',
+        'applicant',
+        'applicant__jobseekerprofile'
+    ).order_by('-applied_at')
     
-    paginator = Paginator(applications, 10)
-    page = request.GET.get('page')
-    applications = paginator.get_page(page)
+    # Apply search filter if query exists
+    if search_query:
+        applications = applications.filter(
+            Q(applicant__first_name__icontains=search_query) |
+            Q(applicant__last_name__icontains=search_query) |
+            Q(applicant__username__icontains=search_query)
+        )
     
-    return render(request, 'employer_applications.html', {
-        'applications': applications
+    # Get filter type from query parameters
+    status_filter = request.GET.get('status', 'all')
+    if status_filter != 'all':
+        applications = applications.filter(status=status_filter)
+    
+    # Get job filter from query parameters
+    job_filter = request.GET.get('job', 'all')
+    if job_filter != 'all':
+        applications = applications.filter(job_id=job_filter)
+    
+    # Get active jobs for the filter dropdown
+    active_jobs = Job.objects.filter(
+        company__user=request.user,
+        is_active=True
+    ).order_by('-posted_at')
+    
+    return render(request, 'career/employer_applications.html', {
+        'applications': applications,
+        'active_jobs': active_jobs,
+        'status_filter': status_filter,
+        'job_filter': job_filter,
+        'search_query': search_query
     })
 
 @login_required
@@ -730,24 +840,78 @@ def manage_interview(request, interview_id):
         action = request.POST.get('action')
         
         if action == 'reschedule':
-            interview.scheduled_date = request.POST.get('scheduled_date')
-            interview.status = 'rescheduled'
-            interview.save()
-            send_interview_reschedule_notification(interview)
-            messages.success(request, 'Interview rescheduled successfully!')
+            try:
+                scheduled_date = timezone.datetime.strptime(request.POST.get('scheduled_date'), '%Y-%m-%dT%H:%M')
+                scheduled_date = timezone.make_aware(scheduled_date)  # Make timezone-aware
+                duration = int(request.POST.get('duration', 60))
+                interview_type = request.POST.get('interview_type')
+                location_or_link = request.POST.get('location_or_link')
+                notes = request.POST.get('notes')
+                
+                # Update interview details
+                interview.scheduled_date = scheduled_date
+                interview.duration = duration
+                interview.interview_type = interview_type
+                interview.location_or_link = location_or_link
+                interview.notes = notes
+                interview.status = 'rescheduled'
+                interview.save()
+                
+                # Create notification for the applicant
+                Notification.objects.create(
+                    user=interview.application.applicant,
+                    notification_type='interview',
+                    title='Interview Rescheduled',
+                    message=f'The interview for {interview.application.job.title} has been rescheduled to {scheduled_date.strftime("%B %d, %Y at %I:%M %p")}.'
+                )
+                
+                # Try to send email notifications
+                try:
+                    send_interview_reschedule_notification(interview)
+                except Exception as e:
+                    print(f"Failed to send interview reschedule notification email: {str(e)}")
+                    messages.warning(request, 'Interview rescheduled successfully, but there was an issue sending email notifications.')
+                
+                messages.success(request, 'Interview rescheduled successfully!')
+                return redirect('view_application', application_id=interview.application.id)
+                
+            except (ValueError, TypeError) as e:
+                messages.error(request, 'Invalid date format or duration. Please try again.')
+                return render(request, 'career/reschedule_interview.html', {
+                    'interview': interview
+                })
         
         elif action == 'cancel':
             interview.status = 'cancelled'
             interview.save()
-            send_interview_cancellation_notification(interview)
+            
+            # Create notification for the applicant
+            Notification.objects.create(
+                user=interview.application.applicant,
+                notification_type='interview',
+                title='Interview Cancelled',
+                message=f'The interview for {interview.application.job.title} has been cancelled.'
+            )
+            
+            # Try to send email notifications
+            try:
+                send_interview_cancellation_notification(interview)
+            except Exception as e:
+                print(f"Failed to send interview cancellation notification email: {str(e)}")
+            
             messages.success(request, 'Interview cancelled successfully!')
+            return redirect('view_application', application_id=interview.application.id)
         
         elif action == 'complete':
             interview.status = 'completed'
             interview.save()
             messages.success(request, 'Interview marked as completed!')
+            return redirect('view_application', application_id=interview.application.id)
     
-    return redirect('view_application', application_id=interview.application.id)
+    # If it's a GET request, show the rescheduling form
+    return render(request, 'career/reschedule_interview.html', {
+        'interview': interview
+    })
 
 @login_required
 def submit_interview_feedback(request, interview_id):
@@ -844,13 +1008,69 @@ def send_email(subject, template, context, recipient_list):
 
 @login_required
 def get_notifications(request):
+    # Get filter type from query parameters
+    notification_type = request.GET.get('type', 'all')
+    
+    # Base queryset
     notifications = Notification.objects.filter(
         user=request.user
+    ).select_related(
+        'user'
     ).order_by('-created_at')
+    
+    # Apply type filter if not 'all'
+    if notification_type != 'all':
+        notifications = notifications.filter(notification_type=notification_type)
     
     # Mark notifications as read when viewed
     notifications.filter(is_read=False).update(is_read=True)
     
-    return render(request, 'career/notifications.html', {
-        'notifications': notifications
+    # Determine which template to use based on user type
+    if hasattr(request.user, 'employerprofile'):
+        template = 'career/recruiter_notifications.html'
+    else:
+        template = 'career/notifications.html'
+    
+    return render(request, template, {
+        'notifications': notifications,
+        'notification_type': notification_type
     })
+
+@login_required
+def delete_notification(request, notification_id):
+    try:
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.delete()
+        messages.success(request, 'Notification deleted successfully.')
+    except Notification.DoesNotExist:
+        messages.error(request, 'Notification not found.')
+    return redirect('notifications')
+
+@login_required
+def delete_all_notifications(request):
+    if request.method == 'POST':
+        Notification.objects.filter(user=request.user).delete()
+        messages.success(request, 'All notifications have been cleared.')
+    return redirect('notifications')
+
+def cleanup_expired_jobs():
+    """
+    Function to automatically delete jobs that have passed their deadline.
+    This should be called by a scheduled task (e.g., cron job or Celery beat).
+    """
+    expired_jobs = Job.objects.filter(deadline__lt=timezone.now().date())
+    count = expired_jobs.count()
+    expired_jobs.delete()
+    return count
+
+@login_required
+def employer_jobs(request):
+    if not hasattr(request.user, 'employerprofile'):
+        messages.error(request, "You don't have permission to view this page.")
+        return redirect('home')
+    
+    jobs = Job.objects.filter(
+        company=request.user.employerprofile
+    ).select_related('company').order_by('-created_at')
+    
+    # ... rest of the existing employer_jobs view code ...
