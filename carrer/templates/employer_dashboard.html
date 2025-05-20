@@ -8,8 +8,8 @@
         <div class="col-md-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-body text-center">
-                    {% if employer_profile.company_logo %}
-                        <img src="{{ employer_profile.company_logo.url }}" alt="Company Logo" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% if employer_profile.profile_picture %}
+                        <img src="{{ employer_profile.profile_picture.url }}" alt="Company Logo" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
                     {% else %}
                         <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
                             <h3>{{ employer_profile.company_name|first|upper }}</h3>

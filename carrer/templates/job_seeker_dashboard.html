@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Job Seeker Dashboard{% endblock %}
 
 {% block content %}
@@ -45,10 +46,10 @@
 
     .job-seeker-dashboard .header-section {
         text-align: center;
-        padding: 50px 20px;
+        padding: 170px 20px;
         background-color: #fff;
         margin-bottom: 20px;
-        margin-top: 80px;
+        margin-top: 60px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
@@ -179,45 +180,112 @@
     .cta-section p {
         margin-bottom: 30px;
     }
+
+    .recommended-job-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .recommended-job-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border-color: #28a745;
+    }
+    
+    .recommended-job-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    
+    .recommended-job-card .card-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .recommended-job-card .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    .recommended-job-card small {
+        font-size: 0.85rem;
+    }
 </style>
 
 <div class="job-seeker-dashboard">
     <!-- Header Section -->
-    <div class="header-section">
-        <h1>LAND YOUR DREAM JOB</h1>
-        <form class="row g-2 justify-content-center mt-4" method="GET" action="{% url 'job_search' %}">
-            <div class="col-md-3 col-12">
-                <input type="text" class="form-control" placeholder="Job title, Company..." name="q" value="{{ request.GET.q }}">
-            </div>
-            <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Location" name="location" value="{{ request.GET.location }}">
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="job_type">
-                    <option value="" disabled selected>Select Job Type</option>
-                    <option value="Full-time" {% if request.GET.job_type == 'Full-time' %}selected{% endif %}>Full Time</option>
-                    <option value="Part-time" {% if request.GET.job_type == 'Part-time' %}selected{% endif %}>Part Time</option>
-                    <option value="Contract" {% if request.GET.job_type == 'Contract' %}selected{% endif %}>Contract</option>
-                    <option value="Internship" {% if request.GET.job_type == 'Internship' %}selected{% endif %}>Internship</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-success w-100">Search Job</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Stats Section -->
-    <div class="stats-section text-center">
-        <h3>CareerLink Stats</h3>
-        <p>Explore job opportunities that fit your skills.</p>
-        <div class="row mt-3">
-            <div class="col-md-3"><h2>{{ candidates_count }}</h2><p>Candidates</p></div>
-            <div class="col-md-3"><h2>{{ jobs_count }}</h2><p>Jobs Posted</p></div>
-            <div class="col-md-3"><h2>{{ jobs_filled }}</h2><p>Jobs Filled</p></div>
-            <div class="col-md-3"><h2>{{ companies_count }}</h2><p>Companies</p></div>
+    <div class="header-section" style="position: relative; background: url('{% static 'css/images/banner.jpg' %}') no-repeat center center/cover;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(233, 228, 228, 0.1);"></div>
+        <div class="container" style="position: relative; z-index: 2;">
+            <h1 style="color: #008000;">LAND YOUR DREAM JOB</h1>
+            <form class="row g-2 justify-content-center mt-2" method="GET" action="{% url 'job_search' %}">
+                <div class="col-md-3 col-12">
+                    <input type="text" class="form-control" placeholder="Job title, Company..." name="q" value="{{ request.GET.q }}">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="Location" name="location" value="{{ request.GET.location }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="job_type">
+                        <option value="" disabled selected>Select Job Type</option>
+                        <option value="Full-time" {% if request.GET.job_type == 'Full-time' %}selected{% endif %}>Full Time</option>
+                        <option value="Part-time" {% if request.GET.job_type == 'Part-time' %}selected{% endif %}>Part Time</option>
+                        <option value="Internship" {% if request.GET.job_type == 'Internship' %}selected{% endif %}>Internship</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">Search Job</button>
+                </div>
+            </form>
         </div>
     </div>
+
+    {% if user.is_authenticated and recommended_jobs %}
+    <!-- Recommended Jobs Section -->
+    <div class="recommended-jobs mb-4">
+        <div class="container">
+            <h3 class="text-center mb-4" style="color: #008000; font-weight:bold;">
+                Recommended Jobs for You
+            </h3>
+            <div class="row g-4">
+                {% for job in recommended_jobs %}
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm recommended-job-card" onclick="window.location.href='{% url 'job_detail' job.id %}'" style="cursor: pointer;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0 text-primary">{{ job.title }}</h5>
+                                <span class="badge bg-success">{{ job.job_type }}</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                {% if job.company.profile_picture %}
+                                    <img src="{{ job.company.profile_picture.url }}" alt="{{ job.company.company_name }} Logo" 
+                                         class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
+                                         style="width: 30px; height: 30px; font-size: 14px;">
+                                        {{ job.company.company_name|first|upper }}
+                                    </div>
+                                {% endif %}
+                                <h6 class="card-subtitle mb-0 text-muted">
+                                    <i class="fas fa-building me-1"></i>{{ job.company.company_name }}
+                                </h6>
+                            </div>
+                            <div class="d-flex align-items-center text-muted mb-2">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                <small>{{ job.location }}</small>
+                            </div>
+                            <div class="d-flex align-items-center text-muted">
+                                <i class="fas fa-clock me-2"></i>
+                                <small>Posted {{ job.posted_at|timesince }} ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Browse Categories Section -->
     <div class="browse-categories">
@@ -256,9 +324,6 @@
             </div>
         </div>
     </div>
-
-
-
 
     <!-- Call to Action Section (Only for unauthenticated users) -->
     {% if not user.is_authenticated %}

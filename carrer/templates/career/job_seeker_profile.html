@@ -1,37 +1,29 @@
 {% extends 'base.html' %}
 
-{% block title %}My Profile{% endblock %}
+{% block title %}{% if is_own_profile %}My Profile{% else %}{{ profile.user.get_full_name }}'s Profile{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row">
         <div class="col-md-8 mx-auto">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">My Profile</h4>
-                    {% if not edit_mode %}
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #2c3e50;">
+                    <h4 class="mb-0">{% if is_own_profile %}My Profile{% else %}{{ profile.user.get_full_name }}'s Profile{% endif %}</h4>
+                    {% if is_own_profile and not edit_mode %}
                         <a href="?edit=true" class="btn btn-light btn-sm">
                             <i class="fas fa-edit me-1"></i>Edit Profile
                         </a>
                     {% endif %}
                 </div>
                 <div class="card-body">
-                    {% if edit_mode %}
+                    {% if edit_mode and is_own_profile %}
                         <!-- Edit Profile Form -->
                         <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
                             
                             <!-- Profile Picture -->
                             <div class="mb-4 text-center">
-                                <!-- Debug information -->
-                                <div class="small text-muted mb-2">
-                                    Debug Info:
-                                    <br>Has profile picture: {{ profile.profile_picture|yesno:"Yes,No" }}
-                                    {% if profile.profile_picture %}
-                                    <br>Picture URL: {{ profile.profile_picture.url }}
-                                    <br>Picture path: {{ profile.profile_picture.path }}
-                                    {% endif %}
-                                </div>
+
                                 
                                 {% if profile.profile_picture %}
                                     <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
@@ -181,11 +173,16 @@
                                 <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
                             {% else %}
                                 <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 150px; height: 150px; font-size: 48px;">
-                                    {{ request.user.get_full_name|first|upper }}
+                                    {{ profile.user.get_full_name|first|upper }}
                                 </div>
                             {% endif %}
-                            <h4>{{ request.user.get_full_name }}</h4>
-                            <p class="text-muted">{{ request.user.email }}</p>
+                            <h4>{{ profile.user.get_full_name }}</h4>
+                            <p class="text-muted">{{ profile.user.email }}</p>
+                            {% if profile.user.jobseekerprofile.is_premium %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-crown me-1"></i>Premium Member
+                            </span>
+                            {% endif %}
                         </div>
 
                         <div class="row mb-4">
@@ -234,7 +231,7 @@
                                     <div class="card-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <p><strong>Expected Salary:</strong> ${{ profile.expected_salary|default:"Not specified" }}</p>
+                                                <p><strong>Expected Salary:</strong> ₹{{ profile.expected_salary|default:"Not specified" }}</p>
                                                 <p><strong>Preferred Job Type:</strong> {{ profile.preferred_job_type|default:"Not specified" }}</p>
                                             </div>
                                             <div class="col-md-6">

@@ -6,43 +6,44 @@
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-8 mx-auto">
-            <div class="text-center mb-5">
+        <div class="col-lg-10">
+            <section class="text-center mb-5">
                 <h2 class="display-4 fw-bold">Choose Your Premium Plan</h2>
                 <p class="lead text-muted">Unlock premium features and boost your career opportunities</p>
-            </div>
+            </section>
 
             {% if has_active_subscription %}
             <div class="alert alert-success text-center mb-4">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong>You already have an active premium subscription!</strong>
+                <i class="fas fa-check-circle me-2"></i>You have an active subscription
             </div>
             {% endif %}
 
-            <div class="row g-4">
+            <div class="row gy-4">
                 {% for plan in plans %}
-                <div class="col-md-8">
-                    <div class="card h-100 shadow-sm {% if plan.type == user_type %}border-primary{% endif %}">
-                        <div class="card-header text-center p-4 {% if plan.type == user_type %}bg-primary text-white{% endif %}">
-                            <h3 class="my-0 fw-bold">{{ plan.name }}</h3>
-                        </div>
+                <div class="col-md-8 mx-auto">
+                    <article class="card h-100 shadow-sm {% if plan.type == user_type %}border-primary{% endif %}">
+                        <header class="card-header text-center p-4 {% if plan.type == user_type %}bg-primary text-white{% endif %}">
+                            <h3 class="fw-bold mb-0">{{ plan.name }}</h3>
+                        </header>
+
                         <div class="card-body p-4">
                             <div class="text-center mb-4">
-                                <h2 class="card-title pricing-card-title mb-0">
+                                <h2 class="pricing-card-title mb-0">
                                     <span class="display-4">₹{{ plan.price }}</span>
                                     <small class="text-muted fw-light">/year</small>
                                 </h2>
                             </div>
+
                             <p class="text-muted text-center mb-4">{{ plan.description }}</p>
-                            <ul class="list-unstyled mt-4 mb-5">
+
+                            <ul class="list-unstyled mb-5">
                                 {% for feature in plan.features %}
                                 <li class="mb-3">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    {{ feature }}
+                                    <i class="fas fa-check text-success me-2"></i>{{ feature }}
                                 </li>
                                 {% endfor %}
                             </ul>
-                            
+
                             <div class="d-grid">
                                 {% if plan.type == user_type %}
                                     {% if has_active_subscription %}
@@ -61,7 +62,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
+                    </article>
                 </div>
                 {% endfor %}
             </div>
@@ -76,4 +77,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

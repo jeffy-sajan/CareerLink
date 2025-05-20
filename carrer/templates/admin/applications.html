@@ -48,9 +48,9 @@
                         <td>{{ application.job.company.company_name }}</td>
                         <td>{{ application.applied_at|date:"M d, Y" }}</td>
                         <td>
-                            <span class="badge {% if application.status == 'pending' %}bg-warning
-                                          {% elif application.status == 'shortlisted' %}bg-success
-                                          {% elif application.status == 'hired' %}bg-info{% endif %}">
+                            <span class="badge bg-info {% if application.status == 'pending' %}
+                                          {% elif application.status == 'shortlisted' %}
+                                          {% elif application.status == 'hired' %}{% endif %}">
                                 {{ application.status|title }}
                             </span>
                         </td>

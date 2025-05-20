@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: carrerlink
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn carrerlink.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DEBUG
+        value: "False"
+    healthCheckPath: /
+    autoDeploy: true 

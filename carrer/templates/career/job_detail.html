@@ -17,7 +17,7 @@
                             <div class="d-flex gap-3 text-muted">
                                 <span><i class="fas fa-map-marker-alt"></i> {{ job.location }}</span>
                                 <span><i class="fas fa-briefcase"></i> {{ job.job_type }}</span>
-                                <span><i class="fas fa-clock"></i> Posted {{ job.created_at|timesince }} ago</span>
+                                <span><i class="fas fa-clock"></i> Posted {{ job.posted_at|timesince }} ago</span>
                             </div>
                         </div>
                         {% if user.is_authenticated and is_job_seeker %}
@@ -63,7 +63,6 @@
                                 <li class="mb-2"><i class="fas fa-money-bill-wave text-primary"></i> Salary: {{ job.salary_range }}</li>
                                 <li class="mb-2"><i class="fas fa-graduation-cap text-primary"></i> Experience: {{ job.experience_level }}</li>
                                 <li class="mb-2"><i class="fas fa-tag text-primary"></i> Category: {{ job.category.name }}</li>
-                                <li class="mb-2"><i class="fas fa-calendar text-primary"></i> Posted: {{ job.created_at|date:"F d, Y" }}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">

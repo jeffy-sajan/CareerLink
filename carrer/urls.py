@@ -33,11 +33,12 @@ from .views import (
     # Subscription URLs
     subscription_plans, initiate_subscription, subscription_success, subscription_cancel,
     # New admin views
-    admin_users, admin_jobs, admin_premium, admin_revenue, admin_settings
+    admin_users, admin_jobs, admin_premium, admin_revenue
 )
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 
 def redirect_to_dashboard(request):
     if request.user.is_authenticated:
@@ -109,6 +110,7 @@ urlpatterns = [
 
     # Job Seeker Profile
     path('job-seeker/profile/', login_required(update_job_seeker_profile), name='job_seeker_profile'),
+    path('job-seeker/profile/<int:profile_id>/', login_required(update_job_seeker_profile), name='view_job_seeker_profile'),
     path('job-seeker/profile/update/', login_required(update_job_seeker_profile), name='update_job_seeker_profile'),
     path('job-seeker/applications/', login_required(applied_jobs), name='job_seeker_applications'),
 
@@ -165,5 +167,31 @@ urlpatterns = [
     path('admin/premium/', admin_premium, name='admin_premium'),
     path('admin/revenue/', admin_revenue, name='admin_revenue'),
     path('admin/applications/', manage_applications, name='admin_applications'),
-    path('admin/settings/', admin_settings, name='admin_settings'),
+
+    # Password Reset URLs
+    path('password-reset/', 
+         auth_views.PasswordResetView.as_view(
+             template_name='password_reset.html',
+             email_template_name='password_reset_email.html',
+             subject_template_name='password_reset_subject.txt'
+         ),
+         name='password_reset'),
+    
+    path('password-reset/done/', 
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='password_reset_done.html'
+         ),
+         name='password_reset_done'),
+    
+    path('password-reset-confirm/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='password_reset_confirm.html'
+         ),
+         name='password_reset_confirm'),
+    
+    path('password-reset-complete/', 
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='password_reset_complete.html'
+         ),
+         name='password_reset_complete'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

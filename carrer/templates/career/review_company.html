@@ -7,32 +7,51 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Review {{ company.company_name }}</h4>
+                    <h4 class="mb-0">
+                        {% if existing_review %}
+                            Update Your Review for {{ company.company_name }}
+                        {% else %}
+                            Review {{ company.company_name }}
+                        {% endif %}
+                    </h4>
                 </div>
                 <div class="card-body">
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
                         
                         <div class="mb-4">
-                            <label class="form-label">Rating</label>
+                            <label class="form-label">Rating <span class="text-danger">*</span></label>
                             <div class="rating">
-                                {% for i in "12345"|make_list %}
-                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" class="d-none">
+                                {% for i in "54321"|make_list %}
+                                <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" 
+                                       class="d-none" {% if existing_review and existing_review.rating == i|add:"0" %}checked{% endif %} required>
                                 <label for="star{{ i }}" class="star-label">
                                     <i class="fas fa-star fa-2x"></i>
                                 </label>
                                 {% endfor %}
                             </div>
+                            <div class="invalid-feedback">
+                                Please select a rating.
+                            </div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="review_text" class="form-label">Your Review</label>
+                            <label for="review_text" class="form-label">Your Review <span class="text-danger">*</span></label>
                             <textarea class="form-control" id="review_text" name="review_text" rows="5" required 
-                                    placeholder="Share your experience working with {{ company.company_name }}..."></textarea>
+                                    placeholder="Share your experience working with {{ company.company_name }}...">{% if existing_review %}{{ existing_review.review_text }}{% endif %}</textarea>
+                            <div class="invalid-feedback">
+                                Please write your review.
+                            </div>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Submit Review</button>
+                            <button type="submit" class="btn btn-primary">
+                                {% if existing_review %}
+                                    Update Review
+                                {% else %}
+                                    Submit Review
+                                {% endif %}
+                            </button>
                             <a href="{% url 'company_profile' company.id %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
@@ -46,7 +65,8 @@
 .rating {
     display: flex;
     flex-direction: row-reverse;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    gap: 0.5rem;
 }
 
 .rating input {
@@ -64,22 +84,43 @@
 .rating .star-label:hover ~ .star-label {
     color: #ffd700;
 }
+
+/* Ensure stars are properly colored when checked */
+.rating input:checked + .star-label {
+    color: #ffd700;
+}
 </style>
 
 <script>
-// Form validation
-(function () {
-    'use strict'
-    var forms = document.querySelectorAll('.needs-validation')
-    Array.prototype.slice.call(forms).forEach(function (form) {
-        form.addEventListener('submit', function (event) {
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
             if (!form.checkValidity()) {
-                event.preventDefault()
-                event.stopPropagation()
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Check if rating is selected
+                const ratingInputs = form.querySelectorAll('input[name="rating"]');
+                const ratingSelected = Array.from(ratingInputs).some(input => input.checked);
+                if (!ratingSelected) {
+                    form.querySelector('.rating').classList.add('is-invalid');
+                } else {
+                    form.querySelector('.rating').classList.remove('is-invalid');
+                }
             }
-            form.classList.add('was-validated')
-        }, false)
-    })
-})()
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Update star colors when rating changes
+    const ratingInputs = document.querySelectorAll('input[name="rating"]');
+    ratingInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            document.querySelector('.rating').classList.remove('is-invalid');
+        });
+    });
+});
 </script>
 {% endblock %} 

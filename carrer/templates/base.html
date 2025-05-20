@@ -21,9 +21,12 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            
         }
         main {
             flex: 1 0 auto;
+            padding-top: 70px; /* Same height as navbar */
+
         }
         .navbar {
             background-color: #2c3e50;
@@ -44,14 +47,47 @@
         .dropdown-menu {
             border: none;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            min-width: 220px;
+            transform-origin: top right;
+            transition: all 0.2s ease-in-out;
+            opacity: 0;
+            display: block;
+            visibility: hidden;
+            transform: scale(0.95);
+        }
+        .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
         }
         .dropdown-item {
-            padding: 0.5rem 1.5rem;
+            padding: 0.7rem 1rem;
+            border-radius: 0.4rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
             color: #2c3e50;
+            font-weight: 500;
         }
         .dropdown-item:hover {
             background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        .dropdown-item i {
+            width: 20px;
+            margin-right: 10px;
+            font-size: 1.1em;
+            color: #6c757d;
+            transition: color 0.2s ease;
+        }
+        .dropdown-item:hover i {
             color: #2c3e50;
+        }
+        .dropdown-divider {
+            margin: 0.5rem 0;
+            border-color: #e9ecef;
         }
         .user-name {
             color: #fff;
@@ -72,9 +108,10 @@
             flex-shrink: 0;
             background-color: #2c3e50;
             color: #fff;
-            padding: 40px 0;
+            padding: 15px 0;
         }
         .site-footer h4 {
+            padding-top: 20px;
             font-size: 1.25rem;
             margin-bottom: 20px;
             color: #fff;
@@ -106,13 +143,49 @@
         .copyright {
             font-size: 0.875rem;
             color: #ccc;
-            margin-top: 20px;
+            margin-top: 5px;
         }
         .premium-badge {
-            display: inline-block;
-            margin-left: 5px;
-            font-size: 1.2em;
-            vertical-align: middle;
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            padding: 2px 8px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: premium-glow 2s infinite;
+        }
+        .premium-badge i {
+            color: #fff;
+            font-size: 0.9em;
+            margin-right: 4px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .premium-badge::after {
+            content: 'Premium';
+            color: #fff;
+            font-size: 0.75em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        @keyframes premium-glow {
+            0% {
+                box-shadow: 0 0 5px rgba(255,215,0,0.5);
+            }
+            50% {
+                box-shadow: 0 0 10px rgba(255,215,0,0.8);
+            }
+            100% {
+                box-shadow: 0 0 5px rgba(255,215,0,0.5);
+            }
+        }
+        .dropdown-item.premium-item {
+            background: linear-gradient(45deg, #fff, #fff8e1);
+            border-left: 3px solid #FFD700;
+        }
+        .dropdown-item.premium-item:hover {
+            background: linear-gradient(45deg, #fff8e1, #fff);
         }
         .notification-badge {
             background-color: #ff4444;
@@ -143,12 +216,34 @@
             background-color: #f8d7da;
             border-color: #f5c6cb;
         }
+        /* Premium Management Link Styles */
+        .premium-management {
+            background: linear-gradient(45deg, #fff8e1, #fff);
+            border-left: 3px solid #FFD700;
+            margin-top: 0.5rem;
+            padding: 0.7rem 1rem;
+            border-radius: 0.4rem;
+            color: #2c3e50;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        .premium-management:hover {
+            background: linear-gradient(45deg, #fff, #fff8e1);
+            transform: translateX(5px);
+        }
+        .premium-management i {
+            color: #FFD700;
+            margin-right: 10px;
+            font-size: 1.1em;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
                 <i class="fas fa-briefcase me-2"></i>CareerLink
@@ -201,25 +296,39 @@
                                         <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
                                         {% if user.jobseekerprofile.is_premium %}
                                         <span class="premium-badge" title="Premium Member">
-                                            <i class="fa-solid fa-crown fa-2xs"></i></span>
+                                            <i class="fa-solid fa-crown"></i>
+                                        </span>
                                         {% endif %}
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="{% url 'job_seeker_dashboard' %}">Dashboard</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'job_seeker_profile' %}">Profile</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'applied_jobs' %}">My Applications</a></li>
-                                        <li><a class="dropdown-item" href="{% url 'saved_jobs' %}">Saved Jobs</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'job_seeker_dashboard' %}">
+                                            <i class="fas fa-tachometer-alt"></i>Dashboard
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{% url 'job_seeker_profile' %}">
+                                            <i class="fas fa-user"></i>Profile
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{% url 'applied_jobs' %}">
+                                            <i class="fas fa-file-alt"></i>My Applications
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{% url 'saved_jobs' %}">
+                                            <i class="fas fa-bookmark"></i>Saved Jobs
+                                        </a></li>
+                                        {% if user.jobseekerprofile.is_premium %}
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                                        <li>
+                                            <a class="premium-management" href="{% url 'subscription_plans' %}">
+                                                <i class="fas fa-crown"></i>Manage Premium
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                                            <i class="fas fa-sign-out-alt"></i>Logout
+                                        </a></li>
                                     </ul>
                                 </li>
                             {% elif user|has_attr:'employerprofile' %}
                                 <!-- Employer Navigation -->
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'employer_dashboard' %}">
-                                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                                    </a>
-                                </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="{% url 'notifications' %}">
                                         <i class="fas fa-bell"></i>
@@ -245,23 +354,31 @@
                                         <span class="company-name">{{ user.employerprofile.company_name }}</span>
                                         {% if user.employerprofile.is_premium %}
                                         <span class="premium-badge" title="Premium Member">
-                                            <i class="fa-solid fa-crown fa-2xs"></i>
+                                            <i class="fa-solid fa-crown"></i>
                                         </span>
                                         {% endif %}
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li><a class="dropdown-item" href="{% url 'edit_company_profile' user.employerprofile.id %}">
-                                            <i class="fas fa-building me-2"></i>Edit Company Profile
+                                            <i class="fas fa-building"></i>Edit Company Profile
                                         </a></li>
                                         <li><a class="dropdown-item" href="{% url 'post_job' %}">
-                                            <i class="fas fa-plus-circle me-2"></i>Post New Job
+                                            <i class="fas fa-plus-circle"></i>Post New Job
                                         </a></li>
                                         <li><a class="dropdown-item" href="{% url 'employer_applications' %}">
-                                            <i class="fas fa-file-alt me-2"></i>View Applications
+                                            <i class="fas fa-file-alt"></i>View Applications
                                         </a></li>
+                                        {% if user.employerprofile.is_premium %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="premium-management" href="{% url 'subscription_plans' %}">
+                                                <i class="fas fa-crown"></i>Manage Premium
+                                            </a>
+                                        </li>
+                                        {% endif %}
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{% url 'logout' %}">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                            <i class="fas fa-sign-out-alt"></i>Logout
                                         </a></li>
                                     </ul>
                                 </li>
@@ -269,9 +386,6 @@
                         {% endif %}
                     {% else %}
                         <!-- Guest Navigation -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">Login</a>
-                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown">
                                 Register
@@ -289,26 +403,29 @@
                                 </li>
                             </ul>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Messages -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <!-- Main Content -->
     <main>
+        <!-- Messages -->
+        {% if messages %}
+        <div class="container" style="margin-top: 1rem; margin-bottom: 1rem;">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% block content %}{% endblock %}
     </main>
 
@@ -352,7 +469,7 @@
 
                 <!-- Contact Section -->
                 <div class="col-md-3 col-sm-6">
-                    <h4>Contact Us</h4>
+                    <h4>Connect with us</h4>
                     <div class="footer-social d-flex gap-3">
                         <a href="#"><i class="fab fa-facebook-f"></i></a>
                         <a href="#"><i class="fab fa-twitter"></i></a>
@@ -366,7 +483,7 @@
             <div class="row mt-5">
                 <div class="col-12 text-center">
                     <p class="copyright mb-0">
-                        Copyright &copy; 2024 CareerLink. All rights reserved.
+                        Copyright &copy; 2025 CareerLink. All rights reserved.
                     </p>
                 </div>
             </div>
@@ -375,6 +492,28 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add hover effect to dropdowns
+        const dropdowns = document.querySelectorAll('.dropdown');
+        
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('mouseenter', function() {
+                const dropdownMenu = this.querySelector('.dropdown-menu');
+                if (dropdownMenu) {
+                    dropdownMenu.classList.add('show');
+                }
+            });
+            
+            dropdown.addEventListener('mouseleave', function() {
+                const dropdownMenu = this.querySelector('.dropdown-menu');
+                if (dropdownMenu) {
+                    dropdownMenu.classList.remove('show');
+                }
+            });
+        });
+    });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -30,10 +30,10 @@
                         
                         <div class="mb-3">
                             <label for="scheduled_date" class="form-label">Interview Date & Time</label>
-                            <input type="datetime-local" class="form-control" id="scheduled_date" name="scheduled_date" required>
+                            <input type="datetime-local" class="form-control" id="scheduled_date" name="scheduled_date" required min="{{ now|date:'Y-m-d\TH:i' }}">
                             <div class="form-text">Please select a date and time that works for both parties.</div>
                             <div class="invalid-feedback">
-                                Please select a date and time for the interview.
+                                Please select a future date and time for the interview.
                             </div>
                         </div>
 
@@ -122,8 +122,23 @@
     })
 })()
 
-// Set minimum date to today
-document.getElementById('scheduled_date').min = new Date().toISOString().slice(0, 16)
+// Set minimum date to current date and time
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const dateInput = document.getElementById('scheduled_date');
+    dateInput.min = now.toISOString().slice(0, 16);
+    
+    // Add validation for past dates
+    dateInput.addEventListener('change', function() {
+        const selectedDate = new Date(this.value);
+        if (selectedDate < now) {
+            this.setCustomValidity('Please select a future date and time');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
 
 // Handle recurring interview options
 document.getElementById('recurring').addEventListener('change', function() {

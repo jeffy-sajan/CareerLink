@@ -39,15 +39,42 @@ def job_seeker_register(request):
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
 
+        # Check if email already exists
+        if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
+            messages.error(request, 'An account with this email already exists. Please use a different email or try logging in.')
+            return render(request, 'job_seeker_register.html', {
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': email
+            })
+
         if password == confirm_password:
-            user = User.objects.create_user(
-                username=email, email=email, password=password,
-                first_name=first_name, last_name=last_name
-            )
-            JobSeekerProfile.objects.create(user=user)
-            login(request, user)
-            return redirect('job_seeker_dashboard')
-        messages.error(request, 'Passwords do not match')
+            try:
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name
+                )
+                JobSeekerProfile.objects.create(user=user)
+                login(request, user)
+                messages.success(request, 'Registration successful! Welcome to CareerLink.')
+                return redirect('job_seeker_dashboard')
+            except Exception as e:
+                messages.error(request, 'An error occurred during registration. Please try again.')
+                return render(request, 'job_seeker_register.html', {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email
+                })
+        else:
+            messages.error(request, 'Passwords do not match')
+            return render(request, 'job_seeker_register.html', {
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': email
+            })
     return render(request, 'job_seeker_register.html')
 
 # Employer Registration View
@@ -58,12 +85,40 @@ def employer_register(request):
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
 
+        # Check if email already exists
+        if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
+            messages.error(request, 'An account with this email already exists. Please use a different email or try logging in.')
+            return render(request, 'employer_register.html', {
+                'company_name': company_name,
+                'email': email
+            })
+
         if password == confirm_password:
-            user = User.objects.create_user(username=email, email=email, password=password)
-            EmployerProfile.objects.create(user=user, company_name=company_name)
-            login(request, user)
-            return redirect('employer_dashboard')
-        messages.error(request, 'Passwords do not match')
+            try:
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=password
+                )
+                EmployerProfile.objects.create(
+                    user=user,
+                    company_name=company_name
+                )
+                login(request, user)
+                messages.success(request, 'Registration successful! Welcome to CareerLink.')
+                return redirect('employer_dashboard')
+            except Exception as e:
+                messages.error(request, 'An error occurred during registration. Please try again.')
+                return render(request, 'employer_register.html', {
+                    'company_name': company_name,
+                    'email': email
+                })
+        else:
+            messages.error(request, 'Passwords do not match')
+            return render(request, 'employer_register.html', {
+                'company_name': company_name,
+                'email': email
+            })
     return render(request, 'employer_register.html')
 
 # User Login View
@@ -224,10 +279,38 @@ def job_seeker_dashboard(request):
                 applicant=request.user
             ).select_related('job').order_by('-applied_at')[:5]
             
+            # Get recommended jobs based on skills
+            recommended_jobs = []
+            if profile.skills:
+                # Split skills into a list and clean them
+                user_skills = [skill.strip().lower() for skill in profile.skills.split(',')]
+                
+                # Get active and approved jobs
+                active_jobs = Job.objects.filter(
+                    is_active=True,
+                    approval_status='approved'
+                ).select_related('company').order_by('-posted_at')
+                
+                # Score jobs based on matching skills
+                job_scores = []
+                for job in active_jobs:
+                    if job.required_skills:
+                        job_skills = [skill.strip().lower() for skill in job.required_skills.split(',')]
+                        # Calculate match score
+                        matching_skills = set(user_skills) & set(job_skills)
+                        if matching_skills:
+                            score = len(matching_skills) / len(job_skills)
+                            job_scores.append((job, score))
+                
+                # Sort jobs by score and get top 3
+                job_scores.sort(key=lambda x: x[1], reverse=True)
+                recommended_jobs = [job for job, score in job_scores[:3]]
+            
             context.update({
                 'profile': profile,
                 'saved_jobs': saved_jobs,
-                'recent_applications': recent_applications
+                'recent_applications': recent_applications,
+                'recommended_jobs': recommended_jobs
             })
         except JobSeekerProfile.DoesNotExist:
             if hasattr(request.user, 'employerprofile'):
@@ -238,11 +321,21 @@ def job_seeker_dashboard(request):
     return render(request, 'job_seeker_dashboard.html', context)
 
 @login_required
-def update_job_seeker_profile(request):
-    profile = get_object_or_404(JobSeekerProfile, user=request.user)
-    edit_mode = request.GET.get('edit', False)
+def update_job_seeker_profile(request, profile_id=None):
+    # If profile_id is provided, we're viewing someone else's profile
+    if profile_id:
+        profile = get_object_or_404(JobSeekerProfile, id=profile_id)
+        # Only allow employers to view other profiles
+        if not hasattr(request.user, 'employerprofile'):
+            messages.error(request, 'You do not have permission to view this profile.')
+            return redirect('home')
+        edit_mode = False  # Don't allow editing other profiles
+    else:
+        # Viewing own profile
+        profile = get_object_or_404(JobSeekerProfile, user=request.user)
+        edit_mode = request.GET.get('edit', False)
     
-    if request.method == 'POST':
+    if request.method == 'POST' and not profile_id:  # Only allow editing own profile
         form = JobSeekerProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
@@ -254,7 +347,8 @@ def update_job_seeker_profile(request):
     return render(request, 'career/job_seeker_profile.html', {
         'form': form,
         'profile': profile,
-        'edit_mode': edit_mode
+        'edit_mode': edit_mode,
+        'is_own_profile': not profile_id  # Flag to indicate if this is the user's own profile
     })
 
 @login_required
@@ -321,7 +415,7 @@ def post_job(request):
                 "Upgrade to premium for unlimited job postings."
             )
             return redirect('subscription_plans')
-    
+        
     if request.method == 'POST':
         form = JobForm(request.POST)
         if form.is_valid():
@@ -369,7 +463,6 @@ def review_company(request, company_id):
         return redirect('company_profile', company_id=company.id)
     return render(request, 'career/review_company.html', {'company': company})
 
-@login_required
 def company_profile(request, company_id):
     company = get_object_or_404(EmployerProfile, id=company_id)
     reviews = CompanyReview.objects.filter(company=company).select_related('reviewer')
@@ -684,7 +777,7 @@ def edit_job(request, job_id):
 def edit_company_profile(request, company_id):
     company = get_object_or_404(EmployerProfile, id=company_id, user=request.user)
     if request.method == 'POST':
-        form = EmployerProfileForm(request.POST, instance=company)
+        form = EmployerProfileForm(request.POST, request.FILES, instance=company)
         if form.is_valid():
             form.save()
             messages.success(request, 'Company profile updated successfully!')
@@ -835,6 +928,15 @@ def schedule_interview(request, application_id):
         try:
             scheduled_date = timezone.datetime.strptime(request.POST.get('scheduled_date'), '%Y-%m-%dT%H:%M')
             scheduled_date = timezone.make_aware(scheduled_date)  # Make timezone-aware
+            
+            # Validate that the scheduled date is in the future
+            if scheduled_date <= timezone.now():
+                messages.error(request, 'Please select a future date and time for the interview.')
+                return render(request, 'career/schedule_interview.html', {
+                    'application': application,
+                    'now': timezone.now()
+                })
+            
             duration = int(request.POST.get('duration', 60))
             interview_type = request.POST.get('interview_type')
             location_or_link = request.POST.get('location_or_link')
@@ -870,11 +972,13 @@ def schedule_interview(request, application_id):
         except (ValueError, TypeError) as e:
             messages.error(request, 'Invalid date format or duration. Please try again.')
             return render(request, 'career/schedule_interview.html', {
-                'application': application
+                'application': application,
+                'now': timezone.now()
             })
     
     return render(request, 'career/schedule_interview.html', {
-        'application': application
+        'application': application,
+        'now': timezone.now()
     })
 
 @login_required
@@ -991,54 +1095,30 @@ def submit_interview_feedback(request, interview_id):
     })
 
 def send_interview_notifications(interview):
-    # Send to applicant
+    # Send to applicant only
     send_email(
         subject='Interview Scheduled',
         template='emails/interview_scheduled.html',
-        context={'interview': interview},
+        context={'interview': interview, 'user': interview.application.applicant},
         recipient_list=[interview.application.applicant.email]
-    )
-    
-    # Send to employer
-    send_email(
-        subject='Interview Scheduled',
-        template='emails/interview_scheduled.html',
-        context={'interview': interview},
-        recipient_list=[interview.application.job.company.user.email]
     )
 
 def send_interview_reschedule_notification(interview):
-    # Send to applicant
+    # Send to applicant only
     send_email(
         subject='Interview Rescheduled',
         template='emails/interview_rescheduled.html',
-        context={'interview': interview},
+        context={'interview': interview, 'user': interview.application.applicant},
         recipient_list=[interview.application.applicant.email]
-    )
-    
-    # Send to employer
-    send_email(
-        subject='Interview Rescheduled',
-        template='emails/interview_rescheduled.html',
-        context={'interview': interview},
-        recipient_list=[interview.application.job.company.user.email]
     )
 
 def send_interview_cancellation_notification(interview):
-    # Send to applicant
+    # Send to applicant only
     send_email(
         subject='Interview Cancelled',
         template='emails/interview_cancelled.html',
-        context={'interview': interview},
+        context={'interview': interview, 'user': interview.application.applicant},
         recipient_list=[interview.application.applicant.email]
-    )
-    
-    # Send to employer
-    send_email(
-        subject='Interview Cancelled',
-        template='emails/interview_cancelled.html',
-        context={'interview': interview},
-        recipient_list=[interview.application.job.company.user.email]
     )
 
 def send_email(subject, template, context, recipient_list):
@@ -1482,62 +1562,45 @@ def admin_revenue(request):
 @staff_member_required
 def admin_applications(request):
     """Admin view for managing job applications"""
-    # Get application statistics
-    total_applications = JobApplication.objects.count()
-    pending_applications = JobApplication.objects.filter(status='pending').count()
-    shortlisted_applications = JobApplication.objects.filter(status='shortlisted').count()
-    hired_applications = JobApplication.objects.filter(status='hired').count()
+    # Get filters
+    status = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '')
     
-    # Base queryset with all necessary related data
-    applications = JobApplication.objects.select_related(
+    # Base queryset
+    applications = JobApplication.objects.all().select_related(
         'job',
         'applicant',
-        'job__company',
-        'applicant__jobseekerprofile'
+        'job__company'
     ).order_by('-applied_at')
     
-    # Get filter status from query parameters
-    status = request.GET.get('status', 'all')
+    # Apply filters
     if status != 'all':
         applications = applications.filter(status=status)
     
-    # Get search query
-    search_query = request.GET.get('search', '')
     if search_query:
         applications = applications.filter(
-            Q(applicant__first_name__icontains=search_query) |
-            Q(applicant__last_name__icontains=search_query) |
+            Q(applicant__username__icontains=search_query) |
+            Q(applicant__email__icontains=search_query) |
             Q(job__title__icontains=search_query) |
             Q(job__company__company_name__icontains=search_query)
         )
     
+    # Get application statistics
+    total_applications = JobApplication.objects.count()
+    pending_applications = JobApplication.objects.filter(status='Pending').count()
+    accepted_applications = JobApplication.objects.filter(status='Accepted').count()
+    rejected_applications = JobApplication.objects.filter(status='Rejected').count()
+    
     context = {
         'applications': applications,
-        'total_applications': total_applications,
-        'pending_applications': pending_applications,
-        'shortlisted_applications': shortlisted_applications,
-        'hired_applications': hired_applications,
         'status': status,
         'search_query': search_query,
+        'total_applications': total_applications,
+        'pending_applications': pending_applications,
+        'accepted_applications': accepted_applications,
+        'rejected_applications': rejected_applications,
         'active_tab': 'applications'
     }
     return render(request, 'admin/applications.html', context)
 
-@staff_member_required
-def admin_settings(request):
-    """Admin settings view"""
-    if request.method == 'POST':
-        # Handle settings update
-        try:
-            settings.JOB_SEEKER_PREMIUM_PRICE = int(request.POST.get('job_seeker_price', 999))
-            settings.EMPLOYER_PREMIUM_PRICE = int(request.POST.get('employer_price', 1999))
-            messages.success(request, 'Settings updated successfully!')
-        except ValueError:
-            messages.error(request, 'Invalid price values provided.')
-    
-    context = {
-        'job_seeker_price': settings.JOB_SEEKER_PREMIUM_PRICE,
-        'employer_price': settings.EMPLOYER_PREMIUM_PRICE,
-        'active_tab': 'settings'
-    }
-    return render(request, 'admin/settings.html', context)
+
